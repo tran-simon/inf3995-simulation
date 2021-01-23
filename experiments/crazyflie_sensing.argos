@@ -23,21 +23,21 @@
   <!-- *************** -->
   <controllers>
 
-    <spiri_sensing_controller id="ssc"
-                                 library="build/controllers/spiri_sensing/libspiri_sensing">
+    <crazyflie_sensing_controller id="ssc"
+                                 library="build/controllers/crazyflie_sensing/libcrazyflie_sensing">
       <actuators>
         <range_and_bearing  implementation="default" />
         <quadrotor_position implementation="default" />
       </actuators>
       <sensors>
         <range_and_bearing      implementation="medium" medium="rab" show_rays="false" />
-        <spiri_distance_scanner implementation="rot_z_only"  show_rays="true" />
+        <crazyflie_distance_scanner implementation="rot_z_only"  show_rays="true" />
         <positioning            implementation="default"/>
         <battery implementation="default"/>
       </sensors>
       <params>
       </params>
-    </spiri_sensing_controller>
+    </crazyflie_sensing_controller>
 
   </controllers>
 
@@ -65,10 +65,10 @@
       <position method="uniform" min="-1,1,0" max="-1,1,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
       <entity quantity="1" max_trials="100">
-        <spiri id="s">
+        <crazyflie id="s">
           <controller config="ssc" />
-          <battery model="time_motion" delta="1e-2" pos_delta="1e-2"  orient_delta="1e-2"/>
-        </spiri>
+          <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
+        </crazyflie>
       </entity>
     </distribute>
 

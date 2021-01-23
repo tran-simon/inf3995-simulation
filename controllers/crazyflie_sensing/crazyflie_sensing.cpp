@@ -1,5 +1,5 @@
 /* Include the controller definition */
-#include "spiri_sensing.h"
+#include "crazyflie_sensing.h"
 /* Function definitions for XML parsing */
 #include <argos3/core/utility/configuration/argos_configuration.h>
 /* 2D vector definition */
@@ -10,7 +10,7 @@
 /****************************************/
 /****************************************/
 
-CSpiriSensing::CSpiriSensing() :
+CCrazyflieSensing::CCrazyflieSensing() :
    m_pcDistance(NULL),
    m_pcPropellers(NULL),
    m_pcRNG(NULL),
@@ -23,12 +23,12 @@ CSpiriSensing::CSpiriSensing() :
 /****************************************/
 /****************************************/
 
-void CSpiriSensing::Init(TConfigurationNode& t_node) {
+void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    try {
       /*
        * Initialize sensors/actuators
        */
-      m_pcDistance   = GetSensor  <CCI_SpiriDistanceScannerSensor>("spiri_distance_scanner");
+      m_pcDistance   = GetSensor  <CCI_CrazyflieDistanceScannerSensor>("crazyflie_distance_scanner");
       m_pcPropellers = GetActuator  <CCI_QuadRotorPositionActuator>("quadrotor_position");
       /* Get pointers to devices */
       m_pcRABA   = GetActuator<CCI_RangeAndBearingActuator>("range_and_bearing");
@@ -43,7 +43,7 @@ void CSpiriSensing::Init(TConfigurationNode& t_node) {
       catch(CARGoSException& ex) {}      
    }
    catch(CARGoSException& ex) {
-      THROW_ARGOSEXCEPTION_NESTED("Error initializing the spiri sensing controller for robot \"" << GetId() << "\"", ex);
+      THROW_ARGOSEXCEPTION_NESTED("Error initializing the crazyflie sensing controller for robot \"" << GetId() << "\"", ex);
    }
    /*
     * Initialize other stuff
@@ -59,7 +59,7 @@ void CSpiriSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 /****************************************/
 
-void CSpiriSensing::ControlStep() {
+void CCrazyflieSensing::ControlStep() {
    // Dummy behavior: takeoff for 10 steps, then land for 10 steps, repeat.
    // While rotating on itself
 
@@ -76,9 +76,9 @@ void CSpiriSensing::ControlStep() {
    const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
-   // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/spiri/control_interface/ci_spiri_distance_scanner_sensor.h
+   // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/crazyflie/control_interface/ci_crazyflie_distance_scanner_sensor.h
    // Read distance sensor
-   CCI_SpiriDistanceScannerSensor::TReadingsMap sDistRead = 
+   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = 
       m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
    if (sDistRead.size() == 4) {
@@ -94,7 +94,7 @@ void CSpiriSensing::ControlStep() {
 /****************************************/
 /****************************************/
 
-bool CSpiriSensing::TakeOff() {
+bool CCrazyflieSensing::TakeOff() {
    CVector3 cPos = m_pcPos->GetReading().Position;
    if(Abs(cPos.GetZ() - 2.0f) < 0.01f) return false;
    cPos.SetZ(2.0f);
@@ -105,7 +105,7 @@ bool CSpiriSensing::TakeOff() {
 /****************************************/
 /****************************************/
 
-bool CSpiriSensing::Land() {
+bool CCrazyflieSensing::Land() {
    CVector3 cPos = m_pcPos->GetReading().Position;
    if(Abs(cPos.GetZ()) < 0.01f) return false;
    cPos.SetZ(0.0f);
@@ -116,7 +116,7 @@ bool CSpiriSensing::Land() {
 /****************************************/
 /****************************************/
 
-void CSpiriSensing::Reset() {
+void CCrazyflieSensing::Reset() {
 }
 
 /****************************************/
@@ -132,4 +132,4 @@ void CSpiriSensing::Reset() {
  * class to instantiate.
  * See also the XML configuration files for an example of how this is used.
  */
-REGISTER_CONTROLLER(CSpiriSensing, "spiri_sensing_controller")
+REGISTER_CONTROLLER(CCrazyflieSensing, "crazyflie_sensing_controller")

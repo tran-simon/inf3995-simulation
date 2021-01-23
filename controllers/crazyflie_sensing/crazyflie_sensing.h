@@ -2,31 +2,31 @@
  * AUTHORS: Carlo Pinciroli <cpinciro@ulb.ac.be>
  *          Pierre-Yves Lajoie <lajoie.py@gmail.com>
  *
- * An example spiri drones sensing.
+ * An example crazyflie drones sensing.
  *
  * This controller is meant to be used with the XML file:
  *    experiments/foraging.argos
  */
 
-#ifndef SPIRI_SENSING_H
-#define SPIRI_SENSING_H
+#ifndef CRAZYFLIE_SENSING_H
+#define CRAZYFLIE_SENSING_H
 
 /*
  * Include some necessary headers.
  */
 /* Definition of the CCI_Controller class. */
 #include <argos3/core/control_interface/ci_controller.h>
-/* Definition of the spiri distance sensor */
-#include <argos3/plugins/robots/spiri/control_interface/ci_spiri_distance_scanner_sensor.h>
-/* Definition of the spiri position actuator */
+/* Definition of the crazyflie distance sensor */
+#include <argos3/plugins/robots/crazyflie/control_interface/ci_crazyflie_distance_scanner_sensor.h>
+/* Definition of the crazyflie position actuator */
 #include <argos3/plugins/robots/generic/control_interface/ci_quadrotor_position_actuator.h>
-/* Definition of the spiri position sensor */
+/* Definition of the crazyflie position sensor */
 #include <argos3/plugins/robots/generic/control_interface/ci_positioning_sensor.h>
-/* Definition of the spiri range and bearing actuator */
+/* Definition of the crazyflie range and bearing actuator */
 #include <argos3/plugins/robots/generic/control_interface/ci_range_and_bearing_actuator.h>
-/* Definition of the spiri range and bearing sensor */
+/* Definition of the crazyflie range and bearing sensor */
 #include <argos3/plugins/robots/generic/control_interface/ci_range_and_bearing_sensor.h>
-/* Definition of the spiri battery sensor */
+/* Definition of the crazyflie battery sensor */
 #include <argos3/plugins/robots/generic/control_interface/ci_battery_sensor.h>
 /* Definitions for random number generation */
 #include <argos3/core/utility/math/rng.h>
@@ -40,14 +40,14 @@ using namespace argos;
 /*
  * A controller is simply an implementation of the CCI_Controller class.
  */
-class CSpiriSensing : public CCI_Controller {
+class CCrazyflieSensing : public CCI_Controller {
 
 public:
 
    /* Class constructor. */
-   CSpiriSensing();
+   CCrazyflieSensing();
    /* Class destructor. */
-   virtual ~CSpiriSensing() {}
+   virtual ~CCrazyflieSensing() {}
 
    /*
     * This function initializes the controller.
@@ -89,8 +89,8 @@ public:
 
 private:
 
-   /* Pointer to the spiri distance sensor */
-   CCI_SpiriDistanceScannerSensor* m_pcDistance;
+   /* Pointer to the crazyflie distance sensor */
+   CCI_CrazyflieDistanceScannerSensor* m_pcDistance;
 
     /* Pointer to the position actuator */
    CCI_QuadRotorPositionActuator* m_pcPropellers;
