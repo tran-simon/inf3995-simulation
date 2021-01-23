@@ -33,7 +33,7 @@
         <range_and_bearing      implementation="medium" medium="rab" show_rays="false" />
         <spiri_distance_scanner implementation="rot_z_only"  show_rays="true" />
         <positioning            implementation="default"/>
-        <battery                implementation="default"/>
+        <battery implementation="default"/>
       </sensors>
       <params>
       </params>
@@ -46,27 +46,28 @@
   <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
-  <arena size="5, 5, 2" center="0,0,1">
+  <arena size="5, 5, 2" center="0,0,0">
 
-    <box id="wall_north" size="4,0.1,0.5" movable="false">
+    <box id="wall_north" size="4,0.1,2" movable="false">
       <body position="0,2,0" orientation="0,0,0" />
     </box>
-    <box id="wall_south" size="4,0.1,0.5" movable="false">
+    <box id="wall_south" size="4,0.1,2" movable="false">
       <body position="0,-2,0" orientation="0,0,0" />
     </box>
-    <box id="wall_east" size="0.1,4,0.5" movable="false">
+    <box id="wall_east" size="0.1,4,2" movable="false">
       <body position="2,0,0" orientation="0,0,0" />
     </box>
-    <box id="wall_west" size="0.1,4,0.5" movable="false">
+    <box id="wall_west" size="0.1,4,2" movable="false">
       <body position="-2,0,0" orientation="0,0,0" />
     </box>
 
     <distribute>
-      <position method="uniform" min="-2,-2,0" max="-1,2,0" />
+      <position method="uniform" min="-1,1,0" max="-1,1,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
       <entity quantity="1" max_trials="100">
         <spiri id="s">
           <controller config="ssc" />
+          <battery model="time_motion" delta="1e-2" pos_delta="1e-2"  orient_delta="1e-2"/>
         </spiri>
       </entity>
     </distribute>
@@ -95,11 +96,11 @@
   <visualization>
     <qt-opengl>
       <camera>
-        <placement idx="0"
-                   position="0,0,10"
-                   look_at="0,0,0"
-                   up="-1,0,0"
+      <placements>
+        <placement index="0" position="2,0,4"
+                   look_at="0,0,0" up="-1,0,0" 
                    lens_focal_length="20" />
+        </placements>
       </camera>
     </qt-opengl>
   </visualization>

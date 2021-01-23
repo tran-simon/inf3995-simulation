@@ -61,12 +61,32 @@ void CSpiriSensing::Init(TConfigurationNode& t_node) {
 
 void CSpiriSensing::ControlStep() {
    // Dummy behavior: takeoff for 10 steps, then land for 10 steps, repeat.
+   // While rotating on itself
+
+   // Rotate robot
+   m_pcPropellers->SetRelativeYaw(CRadians::PI_OVER_SIX);
+
+   // Takeoff/Land
    if ( (m_uiCurrentStep / 10) % 2 == 0 ) {
       TakeOff();
    } else {
       Land();
    }
+   // Look battery level
    const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
+   LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
+
+   // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/spiri/control_interface/ci_spiri_distance_scanner_sensor.h
+   // Read distance sensor
+   CCI_SpiriDistanceScannerSensor::TReadingsMap sDistRead = 
+      m_pcDistance->GetReadingsMap();
+   auto iterDistRead = sDistRead.begin();
+   if (sDistRead.size() == 4) {
+      LOG << "Front dist: " << (iterDistRead++)->second  << std::endl;
+      LOG << "Left dist: "  << (iterDistRead++)->second  << std::endl;
+      LOG << "Back dist: "  << (iterDistRead++)->second  << std::endl;
+      LOG << "Right dist: " << (iterDistRead)->second  << std::endl;
+   }
 
    m_uiCurrentStep++;
 }
