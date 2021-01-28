@@ -40,7 +40,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
       try {
          m_pcBattery = GetSensor<CCI_BatterySensor>("battery");
       }
-      catch(CARGoSException& ex) {}      
+      catch(CARGoSException& ex) {}
    }
    catch(CARGoSException& ex) {
       THROW_ARGOSEXCEPTION_NESTED("Error initializing the crazyflie sensing controller for robot \"" << GetId() << "\"", ex);
@@ -74,11 +74,12 @@ void CCrazyflieSensing::ControlStep() {
    }
    // Look battery level
    const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
+   LOG << "ALLO" << std::endl;
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
    // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/crazyflie/control_interface/ci_crazyflie_distance_scanner_sensor.h
    // Read distance sensor
-   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = 
+   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead =
       m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
    if (sDistRead.size() == 4) {

@@ -2,6 +2,7 @@ FROM ubuntu:18.04
 LABEL Maintainer="Pierre-Yves Lajoie <pierre-yves.lajoie@polymtl.ca>"
 LABEL argos-example.version="0.1"
 
+
 # Install common dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -35,9 +36,12 @@ RUN apt-get update && apt-get install -y \
 # Add dummy argument to force rebuild starting from that point
 ARG UPDATE_ARGOS=unknown
 
+
+WORKDIR /root
+
+
 # Install Argos from source
-RUN cd /root/ &&\
-    git clone https://github.com/MISTLab/argos3.git &&\
+RUN git clone https://github.com/MISTLab/argos3.git &&\
     cd argos3 &&\
     git checkout inf3995 &&\
     mkdir build_simulator &&\
@@ -47,13 +51,13 @@ RUN cd /root/ &&\
      -DARGOS_THREADSAFE_LOG=ON \
      -DARGOS_DYNAMIC_LOADING=ON &&\
     make -j $(nproc)
-RUN touch /root/argos3/build_simulator/argos3.1.gz &&\
-    touch /root/argos3/build_simulator/README.html &&\
-    cd /root/argos3/build_simulator &&\
+RUN touch ./argos3/build_simulator/argos3.1.gz &&\
+    touch ./argos3/build_simulator/README.html &&\
+    cd ./argos3/build_simulator &&\
     make install
-RUN chmod +x /root/argos3/build_simulator/argos_post_install.sh &&\
-    ./root/argos3/build_simulator/argos_post_install.sh &&\
-    echo "\nsource /root/argos3/build_simulator/setup_env.sh\n" >> /.bashrc
+RUN chmod +x ./argos3/build_simulator/argos_post_install.sh &&\
+    ./argos3/build_simulator/argos_post_install.sh &&\
+    echo "\nsource ./argos3/build_simulator/setup_env.sh\n" >> /.bashrc
 
 #################################
 #          YOUR CODE            #
@@ -62,7 +66,9 @@ RUN chmod +x /root/argos3/build_simulator/argos_post_install.sh &&\
 # Add dummy argument to force rebuild starting from that point
 ARG UPDATE_CODE=unknown
 
-COPY . /root/src
+
+COPY ./src ./firmware
+
 
 #WORKDIR /root
 
@@ -78,7 +84,9 @@ COPY . /root/src
 #    git checkout inf3995
 
 # Build your code (here examples)
-RUN cd /root/src &&\
-    mkdir build && cd build &&\
+WORKDIR ./firmware
+RUN mkdir build && cd build &&\
     cmake -DCMAKE_BUILD_TYPE=Debug .. &&\
     make -j $(nproc)
+
+CMD ["argos3", "-c", "./experiments/crazyflie_sensing.argos"]
