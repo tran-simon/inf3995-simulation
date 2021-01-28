@@ -5,7 +5,7 @@ LABEL argos-example.version="0.1"
 # Install common dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    dpkg \ 
+    dpkg \
     git \
     pkg-config \
     python \
@@ -62,17 +62,23 @@ RUN chmod +x /root/argos3/build_simulator/argos_post_install.sh &&\
 # Add dummy argument to force rebuild starting from that point
 ARG UPDATE_CODE=unknown
 
+COPY . /root/src
+
+#WORKDIR /root
+
+#RUN cd /
+
 # Clone your repository
-# If your repository is private, you will need to use ssh keys, look here: 
+# If your repository is private, you will need to use ssh keys, look here:
 # https://stackoverflow.com/a/23411161/8150481
 # For now we clone some argos3 examples
-RUN cd /root &&\
-    git clone https://github.com/MISTLab/argos3-examples.git examples &&\
-    cd examples &&\
-    git checkout inf3995
+#RUN cd /root &&\
+#    git clone https://github.com/MISTLab/argos3-examples.git examples &&\
+#    cd examples &&\
+#    git checkout inf3995
 
 # Build your code (here examples)
-RUN cd /root/examples &&\
+RUN cd /root/src &&\
     mkdir build && cd build &&\
     cmake -DCMAKE_BUILD_TYPE=Debug .. &&\
     make -j $(nproc)
