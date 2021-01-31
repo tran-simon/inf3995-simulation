@@ -46,29 +46,48 @@
   <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
-  <arena size="5, 5, 2" center="0,0,0">
+  <arena size="6, 6, 2" center="0,0,0">
 
-    <box id="wall_north" size="4,0.1,2" movable="false">
-      <body position="0,2,0" orientation="0,0,0" />
+    <box id="wall_north" size="6,0.1,2" movable="false">
+      <body position="0,3,0" orientation="0,0,0" />
     </box>
-    <box id="wall_south" size="4,0.1,2" movable="false">
-      <body position="0,-2,0" orientation="0,0,0" />
+    <box id="wall_south" size="6,0.1,2" movable="false">
+      <body position="0,-3,0" orientation="0,0,0" />
     </box>
-    <box id="wall_east" size="0.1,4,2" movable="false">
-      <body position="2,0,0" orientation="0,0,0" />
+    <box id="wall_east" size="0.1,6,2" movable="false">
+      <body position="3,0,0" orientation="0,0,0" />
     </box>
-    <box id="wall_west" size="0.1,4,2" movable="false">
-      <body position="-2,0,0" orientation="0,0,0" />
+    <box id="wall_west" size="0.1,6,2" movable="false">
+      <body position="-3,0,0" orientation="0,0,0" />
     </box>
 
+    <!-- Crazyflie drone -->
     <distribute>
-      <position method="uniform" min="-1,1,0" max="-1,1,0" />
+      <position method="uniform" min="-3,-3,0" max="3,3,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="1" max_trials="100">
-        <crazyflie id="s">
+      <entity quantity="2" max_trials="100">
+        <crazyflie id="drone1">
           <controller config="ssc" />
           <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
         </crazyflie>
+      </entity>
+    </distribute>
+
+    <!--Boxes-->
+    <distribute>
+      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <orientation method="uniform" min="0,0,0" max="360,0,0" />
+      <entity quantity="2" max_trials="100">
+        <box id="b" size="0.8,0.8,0.9" movable="false" />
+      </entity>
+    </distribute>
+
+    <!--Cylinder-->
+    <distribute>
+      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <cylinder id="c" height="0.5" radius="0.5" movable="false" />
       </entity>
     </distribute>
 
