@@ -1,3 +1,10 @@
+```
+docker build . --tag firmware --network host
+x11docker firmware --hostdisplay --hostnet --user=RETAIN
+```
+
+
+
 ====================
 ==                ==
 == ARGoS EXAMPLES ==
