@@ -63,6 +63,19 @@ public:
    virtual void ControlStep();
 
    /*
+    * This function takes a step as param and moves
+    * according to that step 
+    */
+   virtual void MoveForward(float step);
+
+
+   /*
+    * This function checks the current distances between drones
+    * and logs it.
+    */
+   virtual void CheckDronePosition();
+
+   /*
     * This function resets the controller to its state right after the
     * Init().
     * It is called when you press the reset button in the GUI.

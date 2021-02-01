@@ -59,7 +59,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 /****************************************/
 
-/*void CCrazyflieSensing::ControlStep() {
+void CCrazyflieSensing::ControlStep() {
    // Dummy behavior: takeoff for 10 steps, then land for 10 steps, repeat.
    // While rotating on itself
 
@@ -67,14 +67,15 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_pcPropellers->SetRelativeYaw(CRadians::PI_OVER_SIX);
 
    // Takeoff/Land
-   if ( (m_uiCurrentStep / 10) % 2 == 0 ) {
+   if ( m_uiCurrentStep == 0) {
       TakeOff();
-   } else {
+   } else if (m_uiCurrentStep == 50) {
+      MoveForward(10);
+   } else if (m_uiCurrentStep == 100){
       Land();
    }
    // Look battery level
    const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
-   LOG << "ALLO" << std::endl;
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
    // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/crazyflie/control_interface/ci_crazyflie_distance_scanner_sensor.h
@@ -83,15 +84,25 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
       m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
    if (sDistRead.size() == 4) {
-      LOG << "Front dist: " << (iterDistRead++)->second  << std::endl;
-      LOG << "Left dist: "  << (iterDistRead++)->second  << std::endl;
-      LOG << "Back dist: "  << (iterDistRead++)->second  << std::endl;
+      float frontDist = (iterDistRead++)->second;
+      float leftDist = (iterDistRead++)->second;
+      float backDist = (iterDistRead++)->second;
+      float rightDist = (iterDistRead++)->second;
+
+      // LOG << "Front dist: " << (iterDistRead++)->second  << std::endl;
+      // LOG << "Left dist: "  << (iterDistRead++)->second  << std::endl;
+      // LOG << "Back dist: "  << (iterDistRead++)->second  << std::endl;
       LOG << "Right dist: " << (iterDistRead)->second  << std::endl;
+      LOG << "Drone: is at x:" << m_pcPos->GetReading().Position.GetX() << std::endl;
+      LOG << "Drone is at y:" << m_pcPos->GetReading().Position.GetY() << std::endl;
+      LOG << "Drone is at z:" << m_pcPos->GetReading().Position.GetZ() << std::endl;
+      CheckDronePosition();
    }
 
    m_uiCurrentStep++;
-}*/
-void CCrazyflieSensing::ControlStep() {
+}
+
+/* void CCrazyflieSensing::ControlStep() {
 
    m_pcPropellers->SetRelativePosition(CVector3(1, 0, 0));
 
@@ -130,7 +141,7 @@ void CCrazyflieSensing::ControlStep() {
       //previousLeftDist = leftDist;
       //previousRightDist = rightDist;
    }
-}
+} */
 
 /****************************************/
 /****************************************/
@@ -162,7 +173,24 @@ void CCrazyflieSensing::Reset() {
 
 /****************************************/
 /****************************************/
+void CCrazyflieSensing::CheckDronePosition() {
+   for (int i = 0; i < m_pcRABS->GetReadings().size(); i++ ){
+      Real droneDistance = m_pcRABS->GetReadings()[i].Range;
+      if (droneDistance < 60){ // Figure out a good distance
+         LOG << "DANGER TOO CLOSE!"<< std::endl; // Remplace par disperese function call
+      }
+   }
+}
 
+/****************************************/
+/****************************************/
+void CCrazyflieSensing::MoveForward(float step) {
+   CCI_PositioningSensor::SReading positionRead = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   positionRead.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = positionRead.Position + CVector3(step * Sin(cZAngle), -step * Cos(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
 /*
  * This statement notifies ARGoS of the existence of the controller.
  * It binds the class passed as first argument to the string passed as

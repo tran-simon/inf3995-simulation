@@ -30,7 +30,7 @@
         <quadrotor_position implementation="default" />
       </actuators>
       <sensors>
-        <range_and_bearing      implementation="medium" medium="rab" show_rays="false" />
+        <range_and_bearing      implementation="medium" medium="rab" show_rays="true" />
         <crazyflie_distance_scanner implementation="rot_z_only"  show_rays="true" />
         <positioning            implementation="default"/>
         <battery implementation="default"/>
@@ -65,8 +65,8 @@
     <distribute>
       <position method="uniform" min="-3,-3,0" max="3,3,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="2" max_trials="100">
-        <crazyflie id="drone1">
+      <entity quantity="4" max_trials="100">
+        <crazyflie id="drone">
           <controller config="ssc" />
           <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
         </crazyflie>
@@ -81,6 +81,7 @@
         <box id="b" size="0.8,0.8,0.9" movable="false" />
       </entity>
     </distribute>
+            
 
     <!--Cylinder-->
     <distribute>
