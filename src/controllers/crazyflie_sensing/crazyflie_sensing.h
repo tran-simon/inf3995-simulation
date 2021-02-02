@@ -87,6 +87,12 @@ public:
     */
    bool Land();
 
+   void MoveFoward(float step);
+
+   void MoveLeft(float step);
+
+   void MoveRight(float step);
+
 private:
 
    /* Pointer to the crazyflie distance sensor */
@@ -112,6 +118,8 @@ private:
 
    /* Current step */
    uint m_uiCurrentStep;
+
+   bool inRotation;
 };
 
 #endif

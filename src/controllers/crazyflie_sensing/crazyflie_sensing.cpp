@@ -53,6 +53,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_pcRNG = CRandom::CreateRNG("argos");
 
    m_uiCurrentStep = 0;
+   inRotation = false;
    Reset();
 }
 
@@ -60,50 +61,68 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   // Dummy behavior: takeoff for 10 steps, then land for 10 steps, repeat.
-   // While rotating on itself
 
-   // Rotate robot
-   m_pcPropellers->SetRelativeYaw(CRadians::PI_OVER_SIX);
-
-   // Takeoff/Land
-  /* if ( (m_uiCurrentStep / 10) % 2 == 0 ) {
-      TakeOff();
-   } else {
-      Land();
-   }*/
-   
-   CVector3 cPos = m_pcPos->GetReading().Position;
-   if(!(Abs(cPos.GetZ() - 2.0f) < 0.01f)){
-      cPos.SetZ(1.0f);
-      m_pcPropellers->SetAbsolutePosition(cPos);
-   }
-    
-   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
-   auto iterDistRead = sDistRead.begin();
-
-   if((iterDistRead++)->second > 0.5) {
-      cPos += CVector3(0.5, 0, 0);
-      m_pcPropellers->SetAbsolutePosition(cPos);
-   } 
-
+   ++m_uiCurrentStep;
+   /***
+    * Check for collision
+    ***/
    // Look battery level
    const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
-   // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/crazyflie/control_interface/ci_crazyflie_distance_scanner_sensor.h
-   // Read distance sensor
+   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
+   auto iterDistRead = sDistRead.begin();
+
+   if(sDistRead.size() == 4) {
+      Real frontDist = (iterDistRead++)->second;
+      Real leftDist = (iterDistRead++)->second;
+      Real backDist = (iterDistRead++)->second;
+      Real rightDist = (iterDistRead)->second;
+
+      LOG << "front: " << frontDist;
+      
+      if((frontDist > 30 || frontDist < 0) && !inRotation) {
+         MoveFoward(1);
+         return;
+      } 
+      if(frontDist <= 30 && !inRotation ) {
+         inRotation = !inRotation;
+         return;
+      } 
+      if(inRotation) {
+         inRotation = !inRotation;
+         m_pcPropellers->SetRelativeYaw(CRadians::PI_OVER_SIX);
+         return;
+      } 
+      
+   }
+
    
-   
-   /*if (sDistRead.size() == 4) {
-      LOG << "Front dist: " << (iterDistRead++)->second  << std::endl;
-      LOG << "Left dist: "  << (iterDistRead++)->second  << std::endl;
-      LOG << "Back dist: "  << (iterDistRead++)->second  << std::endl;
-      LOG << "Right dist: " << (iterDistRead)->second  << std::endl;
-   }*/
-   m_uiCurrentStep++;
+  
+}
+void CCrazyflieSensing::MoveFoward(float step) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(step * Sin(cZAngle), -step*Cos(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
 
+void CCrazyflieSensing::MoveLeft(float step) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(step * Cos(cZAngle), -step*Sin(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
+
+void CCrazyflieSensing::MoveRight(float step) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(-step * Cos(cZAngle), step*Sin(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
 /****************************************/
 /****************************************/
 
@@ -130,6 +149,7 @@ bool CCrazyflieSensing::Land() {
 /****************************************/
 
 void CCrazyflieSensing::Reset() {
+   inRotation = false;
 }
 
 /****************************************/
