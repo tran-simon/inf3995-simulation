@@ -48,12 +48,12 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    /*
     * Initialize other stuff
     */
+   
    /* Create a random number generator. We use the 'argos' category so
       that creation, reset, seeding and cleanup are managed by ARGoS. */
    m_pcRNG = CRandom::CreateRNG("argos");
-
+   m_cState = STATE_START;
    m_uiCurrentStep = 0;
-   inRotation = false;
    Reset();
 }
 
@@ -61,11 +61,8 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-
    ++m_uiCurrentStep;
-   /***
-    * Check for collision
-    ***/
+
    // Look battery level
    const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
@@ -74,82 +71,149 @@ void CCrazyflieSensing::ControlStep() {
    auto iterDistRead = sDistRead.begin();
 
    if(sDistRead.size() == 4) {
-      Real frontDist = (iterDistRead++)->second;
-      Real leftDist = (iterDistRead++)->second;
-      Real backDist = (iterDistRead++)->second;
-      Real rightDist = (iterDistRead)->second;
-
-      LOG << "front: " << frontDist;
-      
-      if((frontDist > 30 || frontDist < 0) && !inRotation) {
-         MoveFoward(1);
-         return;
-      } 
-      if(frontDist <= 30 && !inRotation ) {
-         inRotation = !inRotation;
-         return;
-      } 
-      if(inRotation) {
-         inRotation = !inRotation;
-         m_pcPropellers->SetRelativeYaw(CRadians::PI_OVER_SIX);
-         return;
-      } 
-      
+      /*Updates of the distance sensor*/
+      frontDist = (iterDistRead++)->second;
+      leftDist = (iterDistRead++)->second;
+      backDist = (iterDistRead++)->second;
+      rightDist = (iterDistRead)->second;
+      LOG <<"State: " << m_cState;
+      /*States management*/
+      switch (m_cState)
+      {
+         case STATE_START:
+            TakeOff();
+         case STATE_TAKE_OFF:
+            TakeOff();
+            break;
+         case STATE_EXPLORE:
+            Explore();
+            break;
+         case STATE_GO_TO_BASE:
+            GoToBase();
+            break;
+         case STATE_LAND:
+            Land();
+            break;
+            
+         default:
+            break;
+      }
    }
-
-   
-  
 }
-void CCrazyflieSensing::MoveFoward(float step) {
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::TakeOff() {
+   CVector3 cPos;
+   if(m_cState != STATE_TAKE_OFF) {
+      m_cState = STATE_TAKE_OFF;
+      cPos = m_pcPos->GetReading().Position;
+      cPos.SetZ(1.5f);
+      m_pcPropellers->SetAbsolutePosition(cPos);
+   } else {
+      cPos = m_pcPos->GetReading().Position;
+      if(Abs(cPos.GetZ() - 1.5f) < 0.1f) {
+         m_cBasePos = m_pcPos->GetReading().Position;
+         Explore();
+      }
+   }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::Explore() {
+   if(m_cState != STATE_EXPLORE) {
+      m_cState = STATE_EXPLORE;
+      if(frontDist > 30) {
+         MoveFoward(1);
+      }
+   } else if(frontDist > 30){
+      MoveFoward(1);
+   } else {
+      GoToBase();
+   }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::GoToBase() {
+   if(m_cState != STATE_GO_TO_BASE) {
+      m_cState = STATE_GO_TO_BASE;
+      m_pcPropellers->SetAbsolutePosition(m_cBasePos);
+   }
+   else if(argos::SquareDistance(m_cBasePos, m_pcPos->GetReading().Position) < 0.01f) {
+      Land();
+   }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::Land() {
+   if(m_cState != STATE_LAND) {
+      m_cState = STATE_LAND;
+      CVector3 cPos = m_pcPos->GetReading().Position;
+      if(!(Abs(cPos.GetZ()) < 0.01f)) {
+         cPos.SetZ(0.0f);
+         m_pcPropellers->SetAbsolutePosition(cPos);
+      }
+   } else {
+      LOG << "MISSION COMPLETE";
+   }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveFoward(float velocity) {
    CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
    CRadians cZAngle, cYAngle, cXAngle;
    cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(step * Sin(cZAngle), -step*Cos(cZAngle), 0);
+   CVector3 desiredPos = cpos.Position + CVector3(velocity * Sin(cZAngle), -velocity*Cos(cZAngle), 0);
    m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
 
-void CCrazyflieSensing::MoveLeft(float step) {
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveLeft(float velocity) {
    CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
    CRadians cZAngle, cYAngle, cXAngle;
    cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(step * Cos(cZAngle), -step*Sin(cZAngle), 0);
+   CVector3 desiredPos = cpos.Position + CVector3(velocity * Cos(cZAngle), -velocity*Sin(cZAngle), 0);
    m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
 
-void CCrazyflieSensing::MoveRight(float step) {
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveBack(float velocity) {
    CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
    CRadians cZAngle, cYAngle, cXAngle;
    cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(-step * Cos(cZAngle), step*Sin(cZAngle), 0);
+   CVector3 desiredPos = cpos.Position + CVector3(-velocity*Sin(cZAngle), velocity*Cos(cZAngle), 0);
    m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
-/****************************************/
-/****************************************/
-
-bool CCrazyflieSensing::TakeOff() {
-   CVector3 cPos = m_pcPos->GetReading().Position;
-   if(Abs(cPos.GetZ() - 2.0f) < 0.01f) return false;
-   cPos.SetZ(2.0f);
-   m_pcPropellers->SetAbsolutePosition(cPos);
-   return true;
-}
 
 /****************************************/
 /****************************************/
 
-bool CCrazyflieSensing::Land() {
-   CVector3 cPos = m_pcPos->GetReading().Position;
-   if(Abs(cPos.GetZ()) < 0.01f) return false;
-   cPos.SetZ(0.0f);
-   m_pcPropellers->SetAbsolutePosition(cPos);
-   return true;
+void CCrazyflieSensing::MoveRight(float velocity) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(-velocity * Cos(cZAngle), velocity*Sin(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
 
 /****************************************/
 /****************************************/
 
 void CCrazyflieSensing::Reset() {
-   inRotation = false;
+   m_cState = STATE_START;
 }
 
 /****************************************/
