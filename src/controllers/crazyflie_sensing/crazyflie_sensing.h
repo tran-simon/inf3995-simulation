@@ -179,8 +179,9 @@ private:
    /*Current state of the battery*/
    CCI_BatterySensor::SReading sBatRead;
 
-   /*Current mvmt of the drone*/
+   /*Current and previous mvmt of the drone*/
    CfDir m_cDir;
+   CfDir m_pDir;
 
    /*Current drone to object distance in the front direction*/
    Real frontDist;

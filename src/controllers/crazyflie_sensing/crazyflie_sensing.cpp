@@ -54,6 +54,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_pcRNG = CRandom::CreateRNG("argos");
    m_cState = STATE_START;
    m_cDir = CfDir::FRONT;
+   m_pDir = CfDir::FRONT;
    m_uiCurrentStep = 0;
    Reset();
 }
@@ -131,11 +132,16 @@ void CCrazyflieSensing::Explore() {
 
    if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
    
-   if (m_cDir == CfDir::FRONT && frontDist < 30 && frontDist != -2) { m_cDir = CfDir::LEFT;}
-   if (m_cDir == CfDir::LEFT && leftDist < 30 && leftDist != -2) { m_cDir = CfDir::BACK;}
-   if (m_cDir == CfDir::BACK && backDist < 30 && backDist != -2) { m_cDir = CfDir::RIGHT;}
-   if (m_cDir == CfDir::RIGHT && rightDist < 30 && rightDist != -2) { m_cDir = CfDir::FRONT;}
+   if (m_cDir == CfDir::FRONT && frontDist < 30 && frontDist != -2) { m_cDir = CfDir::LEFT; m_pDir = CfDir::FRONT;}
+   if (m_cDir == CfDir::LEFT && leftDist < 30 && leftDist != -2) { m_cDir = CfDir::BACK; m_pDir = CfDir::LEFT;}
+   if (m_cDir == CfDir::BACK && backDist < 30 && backDist != -2) { m_cDir = CfDir::RIGHT; m_pDir = CfDir::BACK;}
+   if (m_cDir == CfDir::RIGHT && rightDist < 30 && rightDist != -2) { m_cDir = CfDir::FRONT; m_pDir = CfDir::RIGHT;}
 
+   if (m_cDir == CfDir::LEFT && m_pDir == CfDir::FRONT && (frontDist > 30 || frontDist == -2)) { m_cDir = CfDir::FRONT;}
+   if (m_cDir == CfDir::BACK && m_pDir == CfDir::LEFT && (leftDist > 30 || leftDist == -2)) { m_cDir = CfDir::LEFT;}
+   if (m_cDir == CfDir::RIGHT && m_pDir == CfDir::BACK && (backDist > 30 || backDist == -2)) { m_cDir = CfDir::BACK;}
+   if (m_cDir == CfDir::FRONT && m_pDir == CfDir::RIGHT && (rightDist > 30 || rightDist == -2)) { m_cDir = CfDir::RIGHT;}
+   LOG<<"Current Dir : "<<m_cDir << std::endl;
    switch(m_cDir) {
       case CfDir::FRONT: MoveFoward(1); break;
       case CfDir::LEFT: MoveLeft(1); break;
