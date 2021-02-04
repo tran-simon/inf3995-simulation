@@ -59,11 +59,31 @@
     <box id="wall_west" size="0.1,4,1.5" movable="false">
       <body position="-2,0,0" orientation="0,0,0" />
     </box>
+
     <crazyflie id="drone1">
       <body position="0,0,0" orientation="0,0,0"/>
       <controller config="ssc" />
       <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
     </crazyflie>
+
+    <!-- Boxes-->
+    <distribute>
+      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <orientation method="uniform" min="0,0,0" max="360,0,0" />
+      <entity quantity="4" max_trials="100">
+        <box id="b" size="0.3,0.3,2" movable="false" />
+      </entity>
+    </distribute>
+
+    <!--Cylinders -->
+    <distribute>
+      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <orientation method="uniform" min="0,0,0" max="360,0,0" />
+      <entity quantity="4" max_trials="100">
+        <cylinder id="c" height="2" radius="0.3" movable="false" />
+      </entity>
+    </distribute>
+
   </arena> 
   <!-- ******************* -->
   <!-- * Physics engines * -->
