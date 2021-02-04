@@ -66,23 +66,37 @@
       <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
     </crazyflie>
 
-    <!-- Boxes-->
+    <!-- Other walls -->
+    <box id="wall_1" size="1,0.1,1.5" movable="false">
+      <body position="1.5,0,0" orientation="0,0,0" />
+    </box>
+    <box id="wall_2" size="1,0.1,1.5" movable="false">
+      <body position="-1.5,0,0" orientation="0,0,0" />
+    </box>
+    <box id="wall_3" size="0.1,1,1.5" movable="false">
+      <body position="0,1.5,0" orientation="0,0,0" />
+    </box>
+    <box id="wall_4" size="0.1,1,1.5" movable="false">
+      <body position="0,-1.5,0" orientation="0,0,0" />
+    </box>
+
+    <!-- Boxes
     <distribute>
       <position method="uniform" min="-2,-2,0" max="2,2,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
       <entity quantity="4" max_trials="100">
         <box id="b" size="0.3,0.3,2" movable="false" />
       </entity>
-    </distribute>
+    </distribute>-->
 
-    <!--Cylinders -->
+    <!--Cylinders 
     <distribute>
       <position method="uniform" min="-2,-2,0" max="2,2,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
       <entity quantity="4" max_trials="100">
         <cylinder id="c" height="2" radius="0.3" movable="false" />
       </entity>
-    </distribute>
+    </distribute>-->
 
   </arena> 
   <!-- ******************* -->

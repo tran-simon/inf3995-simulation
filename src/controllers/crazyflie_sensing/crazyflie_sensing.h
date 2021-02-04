@@ -176,6 +176,9 @@ private:
    /*Current state of the drone*/
    CfState m_cState;
 
+   /*Current state of the battery*/
+   CCI_BatterySensor::SReading sBatRead;
+
    /*Current mvmt of the drone*/
    CfDir m_cDir;
 

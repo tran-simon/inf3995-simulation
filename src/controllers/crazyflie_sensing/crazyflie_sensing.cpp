@@ -65,7 +65,7 @@ void CCrazyflieSensing::ControlStep() {
    ++m_uiCurrentStep;
 
    // Look battery level
-   const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
+   sBatRead = m_pcBattery->GetReading();
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
    CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
@@ -129,7 +129,7 @@ void CCrazyflieSensing::Explore() {
       m_cState = STATE_EXPLORE;
    }
 
-   if (m_uiCurrentStep > 250) { GoToBase();}
+   if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
    
    if (m_cDir == CfDir::FRONT && frontDist < 30 && frontDist != -2) { m_cDir = CfDir::LEFT;}
    if (m_cDir == CfDir::LEFT && leftDist < 30 && leftDist != -2) { m_cDir = CfDir::BACK;}
