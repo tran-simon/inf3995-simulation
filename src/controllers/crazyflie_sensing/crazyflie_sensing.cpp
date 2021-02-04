@@ -173,7 +173,7 @@ void CCrazyflieSensing::Land() {
    } else {
       LOG << "MISSION COMPLETE";
    }
-}
+} 
 
 /****************************************/
 /****************************************/
@@ -228,7 +228,24 @@ void CCrazyflieSensing::Reset() {
 
 /****************************************/
 /****************************************/
+void CCrazyflieSensing::CheckDronePosition() {
+   for (int i = 0; i < m_pcRABS->GetReadings().size(); i++ ){
+      Real droneDistance = m_pcRABS->GetReadings()[i].Range;
+      if (droneDistance < 60){ // Figure out a good distance
+         LOG << "DANGER TOO CLOSE!"<< std::endl; // Remplace par disperese function call
+      }
+   }
+}
 
+/****************************************/
+/****************************************/
+void CCrazyflieSensing::MoveForward(float step) {
+   CCI_PositioningSensor::SReading positionRead = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   positionRead.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = positionRead.Position + CVector3(step * Sin(cZAngle), -step * Cos(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
 /*
  * This statement notifies ARGoS of the existence of the controller.
  * It binds the class passed as first argument to the string passed as
