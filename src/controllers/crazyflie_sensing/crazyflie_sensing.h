@@ -139,6 +139,14 @@ private:
       STATE_GO_TO_BASE,
       STATE_LAND
    };
+
+   enum CfDir {
+      FRONT,
+      LEFT,
+      BACK,
+      RIGHT
+   };
+
 private:
 
    /* Pointer to the crazyflie distance sensor */
@@ -167,6 +175,13 @@ private:
 
    /*Current state of the drone*/
    CfState m_cState;
+
+   /*Current state of the battery*/
+   CCI_BatterySensor::SReading sBatRead;
+
+   /*Current and previous mvmt of the drone*/
+   CfDir m_cDir;
+   CfDir m_pDir;
 
    /*Current drone to object distance in the front direction*/
    Real frontDist;
