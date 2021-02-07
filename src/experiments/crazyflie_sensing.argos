@@ -66,6 +66,12 @@
       <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
     </crazyflie>
 
+    <crazyflie id="drone2">
+      <body position=".5,0.5,0" orientation="0,0,0"/>
+      <controller config="ssc" />
+      <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
+    </crazyflie>
+
     <!-- Other walls -->
     <box id="wall_1" size="1,0.1,1.5" movable="false">
       <body position="1.5,0,0" orientation="0,0,0" />

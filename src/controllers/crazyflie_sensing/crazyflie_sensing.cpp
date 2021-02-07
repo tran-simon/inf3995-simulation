@@ -78,7 +78,7 @@ void CCrazyflieSensing::ControlStep() {
       leftDist = (iterDistRead++)->second;
       backDist = (iterDistRead++)->second;
       rightDist = (iterDistRead)->second;
-      LOG <<"State: " << m_cState;
+       LOG <<"State: " << m_cState;
       /*States management*/
       switch (m_cState)
       {
@@ -131,6 +131,8 @@ void CCrazyflieSensing::Explore() {
    }
 
    if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
+
+   VerifieDroneProximity();
    
    if (m_cDir == CfDir::FRONT && frontDist < 30 && frontDist != -2) { m_cDir = CfDir::LEFT; m_pDir = CfDir::FRONT;}
    if (m_cDir == CfDir::LEFT && leftDist < 30 && leftDist != -2) { m_cDir = CfDir::BACK; m_pDir = CfDir::LEFT;}
@@ -141,7 +143,7 @@ void CCrazyflieSensing::Explore() {
    if (m_cDir == CfDir::BACK && m_pDir == CfDir::LEFT && (leftDist > 30 || leftDist == -2)) { m_cDir = CfDir::LEFT;}
    if (m_cDir == CfDir::RIGHT && m_pDir == CfDir::BACK && (backDist > 30 || backDist == -2)) { m_cDir = CfDir::BACK;}
    if (m_cDir == CfDir::FRONT && m_pDir == CfDir::RIGHT && (rightDist > 30 || rightDist == -2)) { m_cDir = CfDir::RIGHT;}
-   LOG<<"Current Dir : "<<m_cDir << std::endl;
+    LOG<<"Current Dir : "<<m_cDir << std::endl;
    switch(m_cDir) {
       case CfDir::FRONT: MoveFoward(1); break;
       case CfDir::LEFT: MoveLeft(1); break;
@@ -163,6 +165,29 @@ void CCrazyflieSensing::GoToBase() {
    } else {
       m_pcPropellers->SetAbsolutePosition(m_cBasePos);
    }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::VerifieDroneProximity() {
+   if (m_pcRABS->GetReadings()[0].Range < 30){
+      int positionInDegrees = (int)(m_pcRABS->GetReadings()[0].HorizontalBearing.GetValue() * CRadians::RADIANS_TO_DEGREES);
+
+      if ( positionInDegrees >= 0 && positionInDegrees < 90){ //Drone is located between 0 and PI/2
+            m_cDir = CfDir::RIGHT;
+            LOG << "MOVING AWAY, GOING RIGHT" << std::endl;
+      } else if(positionInDegrees >= 90 && positionInDegrees <= 180){ //Drone is located between PI/2 and PI
+            m_cDir = CfDir::LEFT;
+            LOG << "MOVING AWAY, GOING LEFT" << std::endl;
+      } else if(positionInDegrees <= -1 && positionInDegrees >= -90){ // Drone is located between 0 and 3PI/2
+            m_cDir = CfDir::BACK;
+            LOG << "MOVING AWAY, GOING BACK" << std::endl;
+      } else if(positionInDegrees < -90 && positionInDegrees > -180){ //Drone is located between 3PI/2 and PI
+            m_cDir = CfDir::BACK;
+            LOG << "MOVING AWAY, GOING BACK" << std::endl;
+      }
+   } 
 }
 
 /****************************************/

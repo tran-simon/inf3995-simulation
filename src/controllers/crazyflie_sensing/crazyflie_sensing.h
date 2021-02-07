@@ -68,6 +68,13 @@ public:
     */
    virtual void MoveForward(float step);
 
+   /*
+    * This function verifies that the drones
+    * arent about to crash together and deviates the
+    * drones according to the situation
+    */
+   virtual void VerifieDroneProximity();
+
 
    /*
     * This function checks the current distances between drones
