@@ -30,7 +30,7 @@
 #include <argos3/plugins/robots/generic/control_interface/ci_battery_sensor.h>
 /* Definitions for random number generation */
 #include <argos3/core/utility/math/rng.h>
-
+#include <argos3/core/utility/math/vector3.h>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -63,6 +63,26 @@ public:
    virtual void ControlStep();
 
    /*
+    * This function takes a step as param and moves
+    * according to that step 
+    */
+   virtual void MoveForward(float step);
+
+   /*
+    * This function verifies that the drones
+    * arent about to crash together and deviates the
+    * drones according to the situation
+    */
+   virtual void VerifieDroneProximity();
+
+
+   /*
+    * This function checks the current distances between drones
+    * and logs it.
+    */
+   virtual void CheckDronePosition();
+
+   /*
     * This function resets the controller to its state right after the
     * Init().
     * It is called when you press the reset button in the GUI.
@@ -80,12 +100,59 @@ public:
    /*
     * This function lifts the drone from the ground
     */
-   bool TakeOff();
+   void TakeOff();
+
+   /*
+    * This function makes the drone go on an adventure. Will he survive
+    * the long and dangerous journey?
+    */
+   void Explore();
+
+   /*
+    * This function makes the drone go back to its take off position
+    */
+   void GoToBase();
 
    /*
     * This function returns the drone to the ground
     */
-   bool Land();
+   void Land();
+
+   /***This function makes the drone moves forward
+    * @param velocity Speed at which the drone moves.
+   ***/
+   void MoveFoward(float velocity);
+
+   /***This function makes the drone moves to the left
+    * @param velocity Speed at which the drone moves.
+   ***/
+   void MoveLeft(float velocity);
+
+   /***This function makes the drone moves backwards
+    * @param velocity Speed at which the drone moves. 
+   ***/
+   void MoveBack(float velocity);
+
+   /***This function makes the drone moves to the right
+    * @param velocity Speed at which the drone moves. 
+   ***/
+   void MoveRight(float velocity);
+
+private:
+   enum CfState {
+      STATE_START,
+      STATE_TAKE_OFF,
+      STATE_EXPLORE,
+      STATE_GO_TO_BASE,
+      STATE_LAND
+   };
+
+   enum CfDir {
+      FRONT,
+      LEFT,
+      BACK,
+      RIGHT
+   };
 
 private:
 
@@ -109,6 +176,31 @@ private:
 
    /* The random number generator */
    CRandom::CRNG* m_pcRNG;
+
+   /* Base position on take off */
+   CVector3 m_cBasePos;
+
+   /*Current state of the drone*/
+   CfState m_cState;
+
+   /*Current state of the battery*/
+   CCI_BatterySensor::SReading sBatRead;
+
+   /*Current and previous mvmt of the drone*/
+   CfDir m_cDir;
+   CfDir m_pDir;
+
+   /*Current drone to object distance in the front direction*/
+   Real frontDist;
+
+   /*Current drone to object distance in the left direction*/
+   Real leftDist;
+
+   /*Current drone to object distance in the back direction*/
+   Real backDist;
+
+   /*Current drone to object distance in the right direction*/
+   Real rightDist;
 
    /* Current step */
    uint m_uiCurrentStep;

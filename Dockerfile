@@ -88,5 +88,4 @@ WORKDIR ./firmware
 RUN mkdir build && cd build &&\
     cmake -DCMAKE_BUILD_TYPE=Debug .. &&\
     make -j $(nproc)
-
 CMD ["argos3", "-c", "./experiments/crazyflie_sensing.argos"]
