@@ -6,6 +6,12 @@
 #include <argos3/core/utility/math/vector2.h>
 /* Logging */
 #include <argos3/core/utility/logging/argos_log.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#define PORT 80
 
 /****************************************/
 /****************************************/
@@ -57,6 +63,49 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_pDir = CfDir::FRONT;
    m_uiCurrentStep = 0;
    Reset();
+}
+
+/****************************************/
+/****************************************/
+// https://www.geeksforgeeks.org/socket-programming-cc/
+void CCrazyflieSensing::ConnectToSocket() {
+   int serverfd, new_socket, valread;
+   struct sockaddr_in servaddr;
+   int addrlen = sizeof(servaddr);
+   int opt = 1;
+   char buffer[1024] = {0};
+   serverfd = socket(AF_INET, SOCK_STREAM, 0);
+   if(serverfd == -1){
+      LOG << "socket creation failed.." << std::endl;
+      exit(0);
+   } else {
+      LOG << "socket created successfully" << std::endl;
+   }
+   if (setsockopt(serverfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+        exit(0);
+   }
+   servaddr.sin_family = AF_INET;
+   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+   servaddr.sin_port = htons(PORT);
+
+   if (bind(serverfd, (struct sockaddr *)&servaddr, sizeof(servaddr))<0) {
+      exit(0);
+    }
+    if (listen(serverfd, 3) < 0) {
+      exit(0);
+    }
+    if ((new_socket = accept(serverfd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
+      exit(0);
+    }
+    valread = read( new_socket , buffer, 1024);
+    LOG << buffer;
+    LOG << "CONNECTED **********";
+
+  /* if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+    {
+        printf("\nConnection Failed \n");
+        exit(0);
+    } */
 }
 
 /****************************************/

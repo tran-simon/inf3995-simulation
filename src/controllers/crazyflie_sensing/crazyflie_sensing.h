@@ -56,6 +56,12 @@ public:
     */
    virtual void Init(TConfigurationNode& t_node);
 
+   /***This function connects to the socket running
+    * on the backend in order to communicate when
+    * to start and land.
+   ***/
+   void ConnectToSocket();
+
    /*
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
