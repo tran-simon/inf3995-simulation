@@ -43,6 +43,9 @@ using namespace argos;
 class CCrazyflieSensing : public CCI_Controller {
 
 public:
+   /*Arbitrary distance value from which the drone can 
+   no longer approach an object*/
+   static uint const DETECTION_THRESHOLD = 45;
 
    /* Class constructor. */
    CCrazyflieSensing();
@@ -118,27 +121,57 @@ public:
     */
    void Land();
 
-   /***This function makes the drone moves forward
+   /*** This function makes the drone moves forward
     * @param velocity Speed at which the drone moves.
    ***/
    void MoveFoward(float velocity);
 
-   /***This function makes the drone moves to the left
+   /*** 
+    * This function makes the drone moves to the left
     * @param velocity Speed at which the drone moves.
    ***/
    void MoveLeft(float velocity);
 
-   /***This function makes the drone moves backwards
+   /*** 
+    * This function makes the drone moves backwards
     * @param velocity Speed at which the drone moves. 
    ***/
    void MoveBack(float velocity);
 
-   /***This function makes the drone moves to the right
+   /*** 
+    * This function makes the drone moves to the right
     * @param velocity Speed at which the drone moves. 
    ***/
    void MoveRight(float velocity);
 
-private:
+   /*** 
+    * This function makes the drone rotate to the 
+    * desired angle relative to current orientation
+    * @param angle Angle at which the drone will be
+    * rotated. A value of PI/2 rotates 90 degrees to 
+    * the left. A value of -PI/2 rotates 90 degrees
+    * to the right. A small delay needs to be respected
+    * for the drone to be in the right orientation
+   ***/
+   void RotateToward(CRadians angle);
+   
+   /***
+    * This function evaluates, based on the current position 
+    * and environment of the drone, the cardinal direction 
+    * that would shorten the distance between a point and  
+    * the position of the drone the most.
+    * @param possibilities Fixed length bool array that
+    * states if a given cardinal direction is a 
+    * valid choice (1) or not (0). The directions are 
+    * given be array indexes such that FRONT = 0, LEFT = 1,
+    * BACK = 2 and RIGHT = 3.  
+    * @param destination A 3D vector that represents the 
+    * destination point in space aimed by the drone.
+    * @return The cardinal direction index as an integer.
+   ***/
+   int GetBestDirection(bool possibilities[4], const CVector3& destination);
+   
+public:
    enum CfState {
       STATE_START,
       STATE_TAKE_OFF,
@@ -151,7 +184,8 @@ private:
       FRONT,
       LEFT,
       BACK,
-      RIGHT
+      RIGHT, 
+      NONE
    };
 
 private:
@@ -180,8 +214,9 @@ private:
    /* Base position on take off */
    CVector3 m_cBasePos;
 
-   /*Current state of the drone*/
+   /*Current and previous state of the drone*/
    CfState m_cState;
+   CfState m_pState;
 
    /*Current state of the battery*/
    CCI_BatterySensor::SReading sBatRead;

@@ -61,7 +61,7 @@
     </box>
 
     <crazyflie id="drone1">
-      <body position="0,0,0" orientation="0,0,0"/>
+      <body position="-0.5,-0.5,0" orientation="0,0,0"/>
       <controller config="ssc" />
       <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
     </crazyflie>
@@ -73,18 +73,22 @@
     </crazyflie>
 
     <!-- Other walls -->
+    
+    
     <box id="wall_1" size="1,0.1,1.5" movable="false">
-      <body position="1.5,0,0" orientation="0,0,0" />
+      <body position="1,0,0" orientation="45,0,0" />
     </box>
     <box id="wall_2" size="1,0.1,1.5" movable="false">
-      <body position="-1.5,0,0" orientation="0,0,0" />
+      <body position="-1,0,0" orientation="0,0,0" />
     </box>
     <box id="wall_3" size="0.1,1,1.5" movable="false">
-      <body position="0,1.5,0" orientation="0,0,0" />
+      <body position="0,1,0" orientation="45,0,0" />
     </box>
     <box id="wall_4" size="0.1,1,1.5" movable="false">
-      <body position="0,-1.5,0" orientation="0,0,0" />
+      <body position="0,-1,0" orientation="0,0,0" />
     </box>
+  
+  
 
     <!-- Boxes
     <distribute>
