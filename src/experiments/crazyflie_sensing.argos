@@ -15,7 +15,7 @@
     <system threads="0" />
     <experiment length="0"
                 ticks_per_second="10"
-                random_seed="123" />
+                random_seed="0" />
   </framework>
 
   <!-- *************** -->
@@ -46,59 +46,29 @@
   <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
-  <arena size="4, 4, 2" center="0,0,0.5" positional_grid_size="5, 5, 1">
-    <box id="wall_north" size="4,0.1,1.5" movable="false">
-      <body position="0,2,0" orientation="0,0,0" />
+  <arena size="10, 10, 2" center="0,0,0.5" positional_grid_size="5, 5, 1">
+    <box id="wall_north" size="10,0.1,1.5" movable="false">
+      <body position="0,5,0" orientation="0,0,0" />
     </box>
-    <box id="wall_south" size="4,0.1,1.5" movable="false">
-      <body position="0,-2,0" orientation="0,0,0" />
+    <box id="wall_south" size="10,0.1,1.5" movable="false">
+      <body position="0,-5,0" orientation="0,0,0" />
     </box>
-    <box id="wall_east" size="0.1,4,1.5" movable="false">
-      <body position="2,0,0" orientation="0,0,0" />
+    <box id="wall_east" size="0.1,10,1.5" movable="false">
+      <body position="5,0,0" orientation="0,0,0" />
     </box>
-    <box id="wall_west" size="0.1,4,1.5" movable="false">
-      <body position="-2,0,0" orientation="0,0,0" />
+    <box id="wall_west" size="0.1,10,1.5" movable="false">
+      <body position="-5,0,0" orientation="0,0,0" />
     </box>
 
     <crazyflie id="drone1">
-      <body position="0,0,0" orientation="0,0,0"/>
+      <body position="3,3,0" orientation="0,0,0"/>
       <controller config="ssc" />
       <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
     </crazyflie>
-
-    <!-- Other walls -->
-    <box id="wall_1" size="1,0.1,1.5" movable="false">
-      <body position="1.5,0,0" orientation="0,0,0" />
-    </box>
-    <box id="wall_2" size="1,0.1,1.5" movable="false">
-      <body position="-1.5,0,0" orientation="0,0,0" />
-    </box>
-    <box id="wall_3" size="0.1,1,1.5" movable="false">
-      <body position="0,1.5,0" orientation="0,0,0" />
-    </box>
-    <box id="wall_4" size="0.1,1,1.5" movable="false">
-      <body position="0,-1.5,0" orientation="0,0,0" />
-    </box>
-
-    <!-- Boxes
-    <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
-      <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="4" max_trials="100">
-        <box id="b" size="0.3,0.3,2" movable="false" />
-      </entity>
-    </distribute>-->
-
-    <!--Cylinders 
-    <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
-      <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="4" max_trials="100">
-        <cylinder id="c" height="2" radius="0.3" movable="false" />
-      </entity>
-    </distribute>-->
-
   </arena> 
+
+
+
   <!-- ******************* -->
   <!-- * Physics engines * -->
   <!-- ******************* -->
@@ -122,11 +92,12 @@
     <qt-opengl>
       <camera>
       <placements>
-        <placement index="0" position="2,0,4"
+        <placement index="0" position="2,0,6"
                    look_at="0,0,0" up="-1,0,0" 
-                   lens_focal_length="20" />
+                   lens_focal_length="10" />
         </placements>
       </camera>
+      <user_functions label="crazyflie_qt_user_functions" />
     </qt-opengl>
   </visualization>
 
