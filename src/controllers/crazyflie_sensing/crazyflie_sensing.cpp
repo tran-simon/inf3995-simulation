@@ -48,10 +48,13 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    /*
     * Initialize other stuff
     */
+   
    /* Create a random number generator. We use the 'argos' category so
       that creation, reset, seeding and cleanup are managed by ARGoS. */
    m_pcRNG = CRandom::CreateRNG("argos");
-
+   m_cState = STATE_START;
+   m_cDir = CfDir::FRONT;
+   m_pDir = CfDir::FRONT;
    m_uiCurrentStep = 0;
    Reset();
 }
@@ -60,69 +63,195 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   // Dummy behavior: takeoff for 10 steps, then land for 10 steps, repeat.
-   // While rotating on itself
+   ++m_uiCurrentStep;
 
-   // Rotate robot
-   m_pcPropellers->SetRelativeYaw(CRadians::PI_OVER_SIX);
-
-   // Takeoff/Land
-   if ( (m_uiCurrentStep / 10) % 2 == 0 ) {
-      TakeOff();
-   } else {
-      Land();
-   }
    // Look battery level
-   const CCI_BatterySensor::SReading& sBatRead = m_pcBattery->GetReading();
-   LOG << "ALLO" << std::endl;
+   sBatRead = m_pcBattery->GetReading();
    LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
-   // Look here for documentation on the distance sensor: /root/argos3/src/plugins/robots/crazyflie/control_interface/ci_crazyflie_distance_scanner_sensor.h
-   // Read distance sensor
-   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead =
-      m_pcDistance->GetReadingsMap();
+   CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
-   if (sDistRead.size() == 4) {
-      LOG << "Front dist: " << (iterDistRead++)->second  << std::endl;
-      LOG << "Left dist: "  << (iterDistRead++)->second  << std::endl;
-      LOG << "Back dist: "  << (iterDistRead++)->second  << std::endl;
-      LOG << "Right dist: " << (iterDistRead)->second  << std::endl;
+
+   if(sDistRead.size() == 4) {
+      /*Updates of the distance sensor*/
+      frontDist = (iterDistRead++)->second;
+      leftDist = (iterDistRead++)->second;
+      backDist = (iterDistRead++)->second;
+      rightDist = (iterDistRead)->second;
+      LOG <<"State: " << m_cState;
+      /*States management*/
+      switch (m_cState)
+      {
+         case STATE_START:
+            TakeOff();
+         case STATE_TAKE_OFF:
+            TakeOff();
+            break;
+         case STATE_EXPLORE:
+            Explore();
+            break;
+         case STATE_GO_TO_BASE:
+            GoToBase();
+            break;
+         case STATE_LAND:
+            Land();
+            break;
+            
+         default:
+            break;
+      }
+   }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::TakeOff() {
+   CVector3 cPos;
+   if(m_cState != STATE_TAKE_OFF) {
+      m_cState = STATE_TAKE_OFF;
+      cPos = m_pcPos->GetReading().Position;
+      cPos.SetZ(1.5f);
+      m_pcPropellers->SetAbsolutePosition(cPos);
+   } else {
+      cPos = m_pcPos->GetReading().Position;
+      if(Abs(cPos.GetZ() - 1.5f) < 0.1f) {
+         m_cBasePos = m_pcPos->GetReading().Position;
+         Explore();
+      }
+   }
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::Explore() {
+   if(m_cState != STATE_EXPLORE) {
+      m_cState = STATE_EXPLORE;
    }
 
-   m_uiCurrentStep++;
+   if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
+   
+   if (m_cDir == CfDir::FRONT && frontDist < 30 && frontDist != -2) { m_cDir = CfDir::LEFT; m_pDir = CfDir::FRONT;}
+   if (m_cDir == CfDir::LEFT && leftDist < 30 && leftDist != -2) { m_cDir = CfDir::BACK; m_pDir = CfDir::LEFT;}
+   if (m_cDir == CfDir::BACK && backDist < 30 && backDist != -2) { m_cDir = CfDir::RIGHT; m_pDir = CfDir::BACK;}
+   if (m_cDir == CfDir::RIGHT && rightDist < 30 && rightDist != -2) { m_cDir = CfDir::FRONT; m_pDir = CfDir::RIGHT;}
+
+   if (m_cDir == CfDir::LEFT && m_pDir == CfDir::FRONT && (frontDist > 30 || frontDist == -2)) { m_cDir = CfDir::FRONT;}
+   if (m_cDir == CfDir::BACK && m_pDir == CfDir::LEFT && (leftDist > 30 || leftDist == -2)) { m_cDir = CfDir::LEFT;}
+   if (m_cDir == CfDir::RIGHT && m_pDir == CfDir::BACK && (backDist > 30 || backDist == -2)) { m_cDir = CfDir::BACK;}
+   if (m_cDir == CfDir::FRONT && m_pDir == CfDir::RIGHT && (rightDist > 30 || rightDist == -2)) { m_cDir = CfDir::RIGHT;}
+   LOG<<"Current Dir : "<<m_cDir << std::endl;
+   switch(m_cDir) {
+      case CfDir::FRONT: MoveFoward(1); break;
+      case CfDir::LEFT: MoveLeft(1); break;
+      case CfDir::BACK: MoveBack(1); break;
+      case CfDir::RIGHT: MoveRight(1); break;
+   }
 }
 
 /****************************************/
 /****************************************/
 
-bool CCrazyflieSensing::TakeOff() {
-   CVector3 cPos = m_pcPos->GetReading().Position;
-   if(Abs(cPos.GetZ() - 2.0f) < 0.01f) return false;
-   cPos.SetZ(2.0f);
-   m_pcPropellers->SetAbsolutePosition(cPos);
-   return true;
+void CCrazyflieSensing::GoToBase() {
+   if(m_cState != STATE_GO_TO_BASE) {
+      m_cState = STATE_GO_TO_BASE;
+   }
+
+   if(argos::SquareDistance(m_cBasePos, m_pcPos->GetReading().Position) < 0.01f) {
+      Land();
+   } else {
+      m_pcPropellers->SetAbsolutePosition(m_cBasePos);
+   }
 }
 
 /****************************************/
 /****************************************/
 
-bool CCrazyflieSensing::Land() {
-   CVector3 cPos = m_pcPos->GetReading().Position;
-   if(Abs(cPos.GetZ()) < 0.01f) return false;
-   cPos.SetZ(0.0f);
-   m_pcPropellers->SetAbsolutePosition(cPos);
-   return true;
+void CCrazyflieSensing::Land() {
+   if(m_cState != STATE_LAND) {
+      m_cState = STATE_LAND;
+      CVector3 cPos = m_pcPos->GetReading().Position;
+      if(!(Abs(cPos.GetZ()) < 0.01f)) {
+         cPos.SetZ(0.0f);
+         m_pcPropellers->SetAbsolutePosition(cPos);
+      }
+   } else {
+      LOG << "MISSION COMPLETE";
+   }
+} 
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveFoward(float velocity) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(velocity * Sin(cZAngle), -velocity*Cos(cZAngle), cpos.Position.GetZ());
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveLeft(float velocity) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(velocity * Cos(cZAngle), -velocity*Sin(cZAngle), cpos.Position.GetZ());
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveBack(float velocity) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(-velocity*Sin(cZAngle), velocity*Cos(cZAngle), cpos.Position.GetZ());
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::MoveRight(float velocity) {
+   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = cpos.Position + CVector3(-velocity * Cos(cZAngle), velocity*Sin(cZAngle), cpos.Position.GetZ());
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
 
 /****************************************/
 /****************************************/
 
 void CCrazyflieSensing::Reset() {
+   m_cState = STATE_START;
 }
 
 /****************************************/
 /****************************************/
+void CCrazyflieSensing::CheckDronePosition() {
+   for (int i = 0; i < m_pcRABS->GetReadings().size(); i++ ){
+      Real droneDistance = m_pcRABS->GetReadings()[i].Range;
+      if (droneDistance < 60){ // Figure out a good distance
+         LOG << "DANGER TOO CLOSE!"<< std::endl; // Remplace par disperese function call
+      }
+   }
+}
 
+/****************************************/
+/****************************************/
+void CCrazyflieSensing::MoveForward(float step) {
+   CCI_PositioningSensor::SReading positionRead = m_pcPos->GetReading();
+   CRadians cZAngle, cYAngle, cXAngle;
+   positionRead.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+   CVector3 desiredPos = positionRead.Position + CVector3(step * Sin(cZAngle), -step * Cos(cZAngle), 0);
+   m_pcPropellers->SetAbsolutePosition(desiredPos);
+}
 /*
  * This statement notifies ARGoS of the existence of the controller.
  * It binds the class passed as first argument to the string passed as
