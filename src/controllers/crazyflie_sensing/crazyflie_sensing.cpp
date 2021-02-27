@@ -11,7 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #define PORT 80
+static bool firstConnection = true;
 
 /****************************************/
 /****************************************/
@@ -69,49 +71,65 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 // https://www.geeksforgeeks.org/socket-programming-cc/
 void CCrazyflieSensing::ConnectToSocket() {
-   int serverfd, new_socket, valread;
+   int server_fd, new_socket, valread;
    struct sockaddr_in servaddr;
    int addrlen = sizeof(servaddr);
    int opt = 1;
    char buffer[1024] = {0};
-   serverfd = socket(AF_INET, SOCK_STREAM, 0);
-   if(serverfd == -1){
+   
+   if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
       LOG << "socket creation failed.." << std::endl;
-      exit(0);
-   } else {
-      LOG << "socket created successfully" << std::endl;
+      return;
    }
-   if (setsockopt(serverfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-        exit(0);
+   LOG << "Socket created succesfully" << std::endl;
+   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+         LOG << "socket failed forceful" << std::endl;
+        return;
    }
    servaddr.sin_family = AF_INET;
-   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+   servaddr.sin_addr.s_addr = INADDR_ANY;
    servaddr.sin_port = htons(PORT);
 
-   if (bind(serverfd, (struct sockaddr *)&servaddr, sizeof(servaddr))<0) {
-      exit(0);
-    }
-    if (listen(serverfd, 3) < 0) {
-      exit(0);
-    }
-    if ((new_socket = accept(serverfd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
-      exit(0);
-    }
-    valread = read( new_socket , buffer, 1024);
-    LOG << buffer;
-    LOG << "CONNECTED **********";
+   if (bind(server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) <0) {
+      LOG << "Binding error" << std::endl;
+      return;
+   }
 
-  /* if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
-    {
-        printf("\nConnection Failed \n");
-        exit(0);
-    } */
+   LOG << "Socket binded succesfully" << std::endl;
+   if (listen(server_fd, 100) < 0) {
+      LOG << "Listening error" << std::endl;
+      return;
+   }
+
+   LOG << "Socket listening succesfully" << std::endl;
+   if ((new_socket = accept(server_fd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
+      LOG << "Accepting error" << std::endl;
+      return;
+   }
+
+   
+   valread = read( new_socket , buffer, 1024);
+   std::string str(buffer);
+   LOG << buffer << std::endl;
+   while ( str.compare("startSimulation") !=0 ){
+      LOG << buffer << std::endl;
+      valread = read( new_socket , buffer, 1024);
+      str = buffer;
+      LOG << buffer << std::endl;
+   }
+   LOG << buffer << std::endl;
+   
 }
 
 /****************************************/
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
+   if(firstConnection){
+      ConnectToSocket();
+      firstConnection = false;
+   }
+   int firstime =0; 
    ++m_uiCurrentStep;
 
    // Look battery level
@@ -150,6 +168,7 @@ void CCrazyflieSensing::ControlStep() {
             break;
       }
    }
+   firstime ++;
 }
 
 /****************************************/

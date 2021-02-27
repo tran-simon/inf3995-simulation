@@ -69,6 +69,12 @@ ARG UPDATE_CODE=unknown
 
 COPY ./src ./firmware
 
+ENV PORT=4000
+
+EXPOSE 80
+EXPOSE 4000
+
+
 
 #WORKDIR /root
 
