@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #define PORT 80
-static bool firstConnection = true;
+static bool waitingForStart = true;
 
 /****************************************/
 /****************************************/
@@ -75,7 +75,6 @@ void CCrazyflieSensing::ConnectToSocket() {
    struct sockaddr_in servaddr;
    int addrlen = sizeof(servaddr);
    int opt = 1;
-   char buffer[1024] = {0};
    
    if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
       LOG << "socket creation failed.." << std::endl;
@@ -96,7 +95,7 @@ void CCrazyflieSensing::ConnectToSocket() {
    }
 
    LOG << "Socket binded succesfully" << std::endl;
-   if (listen(server_fd, 100) < 0) {
+   if (listen(server_fd, 2) < 0) {
       LOG << "Listening error" << std::endl;
       return;
    }
@@ -107,17 +106,17 @@ void CCrazyflieSensing::ConnectToSocket() {
       return;
    }
 
-   
-   valread = read( new_socket , buffer, 1024);
-   std::string str(buffer);
-   LOG << buffer << std::endl;
-   while ( str.compare("startSimulation") !=0 ){
-      LOG << buffer << std::endl;
-      valread = read( new_socket , buffer, 1024);
-      str = buffer;
-      LOG << buffer << std::endl;
+   char buffer[1024] = {0};
+   while(true){
+      valread = recv( new_socket , buffer, 1, 0);
+      if( memcmp(buffer, "s", strlen("s")) == 0){
+         return;
+      }
+      if ((new_socket = accept(server_fd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
+         LOG << "Accepting error" << std::endl;
+         return;
+      }
    }
-   LOG << buffer << std::endl;
    
 }
 
@@ -125,9 +124,9 @@ void CCrazyflieSensing::ConnectToSocket() {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   if(firstConnection){
+   while(waitingForStart){
       ConnectToSocket();
-      firstConnection = false;
+      waitingForStart = false;
    }
    int firstime =0; 
    ++m_uiCurrentStep;
