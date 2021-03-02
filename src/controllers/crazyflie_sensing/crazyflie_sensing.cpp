@@ -110,6 +110,8 @@ void CCrazyflieSensing::ConnectToSocket() {
    while(true){
       valread = recv( new_socket , buffer, 1, 0);
       if( memcmp(buffer, "s", strlen("s")) == 0){
+         send(new_socket, "Started Simulation successfully", strlen("Started Simulation successfully"), 0);
+         close(new_socket);
          return;
       }
       if ((new_socket = accept(server_fd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
