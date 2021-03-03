@@ -30,6 +30,7 @@
 #include <argos3/plugins/robots/generic/control_interface/ci_battery_sensor.h>
 /* Definitions for random number generation */
 #include <argos3/core/utility/math/rng.h>
+#include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
@@ -41,14 +42,54 @@ using namespace argos;
  * A controller is simply an implementation of the CCI_Controller class.
  */
 class CCrazyflieSensing : public CCI_Controller {
-
 public:
-   /*Arbitrary distance value from which the drone can 
-   no longer approach an object*/
-   static uint const DETECTION_THRESHOLD = 45;
+   /**
+    * Enum that represents mission states.
+    * 
+    * STATE_START      = 0
+    * STATE_TAKE_OFF   = 1
+    * STATE_EXPLORE    = 2
+    * STATE_GO_TO_BASE = 3
+    * STATE_LAND       = 4
+   **/
+   enum CfState {
+      STATE_START,
+      STATE_TAKE_OFF,
+      STATE_EXPLORE,
+      STATE_GO_TO_BASE,
+      STATE_LAND
+   };
+
+   /**
+    * Enum that represents cardinal direction relative to the drone orientation.
+    * 
+    * FRONT = 0
+    * LEFT =  1
+    * BACK =  2
+    * RIGHT = 3
+    * NONE =  4
+   **/
+   enum CfDir {
+      FRONT,
+      LEFT,
+      BACK,
+      RIGHT, 
+      NONE
+   };
+
+   /* Gives the distance at which drones returns -2 as mesured distance */
+   static uint const MAX_VIEW_DIST = 200;
+
+   /* Arbitrary distance value from which the drone can 
+      no longer approach an object*/
+   static uint const DETECTION_THRESHOLD = 45U;
+
+   /* Arbitrary number of steps between each mobility evaluation */
+   static uint const MOBILITY_DELAY = 30U;
 
    /* Class constructor. */
    CCrazyflieSensing();
+
    /* Class destructor. */
    virtual ~CCrazyflieSensing() {}
 
@@ -64,41 +105,6 @@ public:
     * The length of the time step is set in the XML file.
     */
    virtual void ControlStep();
-
-   /*
-    * This function takes a step as param and moves
-    * according to that step 
-    */
-   virtual void MoveForward(float step);
-
-   /*
-    * This function verifies that the drones
-    * arent about to crash together and deviates the
-    * drones according to the situation
-    */
-   virtual void VerifieDroneProximity();
-
-
-   /*
-    * This function checks the current distances between drones
-    * and logs it.
-    */
-   virtual void CheckDronePosition();
-
-   /*
-    * This function resets the controller to its state right after the
-    * Init().
-    * It is called when you press the reset button in the GUI.
-    */
-   virtual void Reset();
-
-   /*
-    * Called to cleanup what done by Init() when the experiment finishes.
-    * In this example controller there is no need for clean anything up,
-    * so the function could have been omitted. It's here just for
-    * completeness.
-    */
-   virtual void Destroy() {}
 
    /*
     * This function lifts the drone from the ground
@@ -121,10 +127,64 @@ public:
     */
    void Land();
 
+   /*
+    * This function verifies that the drones
+    * arent about to crash together and deviates the
+    * drones according to the situation
+    */
+   virtual bool VerifieDroneProximity();
+
+   /*
+    * This function checks the current distances between drones
+    * and logs it.
+    */
+   virtual void CheckDronePosition();
+
+   /***
+    * This function evaluates, based on the current position 
+    * and environment of the drone, the cardinal direction 
+    * that would shorten the distance between a point and  
+    * the position of the drone the most.
+    * @param destination A 3D vector that represents the 
+    * destination point in space aimed by the drone.
+    * @param pCheck If true, the environmental constraints such as
+    * walls and drones proximity won't be taken into account.
+    * @param possibilities Fixed length bool array that states 
+    * if a given cardinal direction is a valid choice (1) or not (0).
+    * The directions are  given be array indexes such that FRONT = 0,
+    * LEFT = 1, BACK = 2 and RIGHT = 3.
+    * @return The cardinal direction index as an integer.
+   ***/
+   CfDir GetBestDirection(const CVector3& destination, bool pCheck, bool possibilities[4]);
+   
+   /***
+    * This function determines the opposite direction to the one given.
+    * @param direction The direction of which we want to know the opposite of.
+    * @return The opposite direction.
+   ***/
+   CfDir InvDirection(CfDir direction);
+
+   /***
+    * This function gives the number of directions the drone can not go to.
+    * @param possibilities Fixed length bool array that states 
+    * if a given cardinal direction is a valid choice (1) or not (0).
+    * The directions are  given be array indexes such that FRONT = 0,
+    * LEFT = 1, BACK = 2 and RIGHT = 3.
+    ***/
+   int CountObstructions(bool possibilities [4]);
+
+   /**
+    * This function checks the distance a drone has travelled in a fixed amount
+    * of time. If the drone did not achieve a minimal distance delta, the corresponding
+    * status value is modified. This function is used to check if a drone is stuck or 
+    * unable to move for a long period of time.
+    **/
+   void VerifyMobility();
+
    /*** This function makes the drone moves forward
     * @param velocity Speed at which the drone moves.
    ***/
-   void MoveFoward(float velocity);
+   void MoveForward(float velocity);
 
    /*** 
     * This function makes the drone moves to the left
@@ -144,6 +204,15 @@ public:
    ***/
    void MoveRight(float velocity);
 
+   /***
+    * This function allows the drone to move in the 
+    * desired direction at a given velocity.
+    * @param direction gives the direction of movement 
+    * @param velocity gives the velocity at which the
+    * drone will go in the given direction 
+   ***/
+   void Move(CfDir direction, float velocity = 0.5);
+
    /*** 
     * This function makes the drone rotate to the 
     * desired angle relative to current orientation
@@ -154,39 +223,21 @@ public:
     * for the drone to be in the right orientation
    ***/
    void RotateToward(CRadians angle);
-   
-   /***
-    * This function evaluates, based on the current position 
-    * and environment of the drone, the cardinal direction 
-    * that would shorten the distance between a point and  
-    * the position of the drone the most.
-    * @param possibilities Fixed length bool array that
-    * states if a given cardinal direction is a 
-    * valid choice (1) or not (0). The directions are 
-    * given be array indexes such that FRONT = 0, LEFT = 1,
-    * BACK = 2 and RIGHT = 3.  
-    * @param destination A 3D vector that represents the 
-    * destination point in space aimed by the drone.
-    * @return The cardinal direction index as an integer.
-   ***/
-   int GetBestDirection(bool possibilities[4], const CVector3& destination);
-   
-public:
-   enum CfState {
-      STATE_START,
-      STATE_TAKE_OFF,
-      STATE_EXPLORE,
-      STATE_GO_TO_BASE,
-      STATE_LAND
-   };
 
-   enum CfDir {
-      FRONT,
-      LEFT,
-      BACK,
-      RIGHT, 
-      NONE
-   };
+   /*
+    * This function resets the controller to its state right after the
+    * Init().
+    * It is called when you press the reset button in the GUI.
+    */
+   virtual void Reset();
+
+   /*
+    * Called to cleanup what done by Init() when the experiment finishes.
+    * In this example controller there is no need for clean anything up,
+    * so the function could have been omitted. It's here just for
+    * completeness.
+    */
+   virtual void Destroy() {}
 
 private:
 
@@ -239,6 +290,15 @@ private:
 
    /* Current step */
    uint m_uiCurrentStep;
+
+   /*Steps relative to the current state*/
+   uint m_uiMobilityStep;
+
+   /*Previous position before mobility check*/
+   CVector3 m_pPos;
+
+   /*Mobility status*/
+   bool isMobile;
 };
 
 #endif
