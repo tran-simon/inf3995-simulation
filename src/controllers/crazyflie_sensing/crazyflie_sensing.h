@@ -60,7 +60,9 @@ public:
     * on the backend in order to communicate when
     * to start and land.
    ***/
-   void ConnectToSocket();
+   int ConnectToSocket();
+
+   char ReadCommand(int fd);
 
    /*
     * This function is called once every time step.

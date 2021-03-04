@@ -14,6 +14,8 @@
 #include <arpa/inet.h>
 #define PORT 80
 static bool waitingForStart = true;
+static int fd =0;
+static int firstTime =0; 
 
 /****************************************/
 /****************************************/
@@ -70,67 +72,88 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 /****************************************/
 // https://www.geeksforgeeks.org/socket-programming-cc/
-void CCrazyflieSensing::ConnectToSocket() {
+int CCrazyflieSensing::ConnectToSocket() {
    int server_fd, new_socket, valread;
    struct sockaddr_in servaddr;
    int addrlen = sizeof(servaddr);
    int opt = 1;
-   
+
    if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
       LOG << "socket creation failed.." << std::endl;
-      return;
+      return 1000;
    }
+
    LOG << "Socket created succesfully" << std::endl;
    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
          LOG << "socket failed forceful" << std::endl;
-        return;
+        return 1000;
    }
+
    servaddr.sin_family = AF_INET;
    servaddr.sin_addr.s_addr = INADDR_ANY;
    servaddr.sin_port = htons(PORT);
 
    if (bind(server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) <0) {
       LOG << "Binding error" << std::endl;
-      return;
+      return 1000;
    }
 
    LOG << "Socket binded succesfully" << std::endl;
    if (listen(server_fd, 2) < 0) {
       LOG << "Listening error" << std::endl;
-      return;
+      return 1000;
    }
 
    LOG << "Socket listening succesfully" << std::endl;
    if ((new_socket = accept(server_fd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
-      LOG << "Accepting error" << std::endl;
-      return;
+      LOG << "Accepting error : " << errno << std::endl;
+      return 1000;
    }
 
+   return new_socket;
+
+}
+
+char CCrazyflieSensing::ReadCommand(int fd) {
    char buffer[1024] = {0};
-   while(true){
-      valread = recv( new_socket , buffer, 1, 0);
-      if( memcmp(buffer, "s", strlen("s")) == 0){
-         send(new_socket, "Started Simulation successfully", strlen("Started Simulation successfully"), 0);
-         close(new_socket);
-         return;
+   int valRead = 0;
+   int index = -1;
+
+   valRead = recv(fd, buffer, sizeof(buffer), MSG_PEEK);
+
+   for (int i = 0; i < sizeof(buffer); i++){
+      if (buffer[i] != '\0') {
+         index++;
       }
-      if ((new_socket = accept(server_fd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
-         LOG << "Accepting error" << std::endl;
-         return;
+      else {
+         break;
       }
    }
-   
+
+   if (index == -1) return 'f';
+
+   LOG << "MESSAGE RECEIVED : " << buffer[index] << std::endl;
+   return buffer[index];
 }
 
 /****************************************/
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   while(waitingForStart){
-      ConnectToSocket();
-      waitingForStart = false;
+   char command;
+   if(firstTime == 0){
+      fd = ConnectToSocket();
    }
-   int firstime =0; 
+
+   while(waitingForStart){
+      if(fd != 1000){
+         command = ReadCommand(fd);
+         if(command == 's'){
+            waitingForStart = false; 
+         }
+      }
+   }
+
    ++m_uiCurrentStep;
 
    // Look battery level
@@ -169,7 +192,7 @@ void CCrazyflieSensing::ControlStep() {
             break;
       }
    }
-   firstime ++;
+   firstTime ++;
 }
 
 /****************************************/
@@ -200,6 +223,7 @@ void CCrazyflieSensing::Explore() {
    }
 
    if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
+   if (ReadCommand(fd) == 'l') { GoToBase();}
 
    VerifieDroneProximity();
    
