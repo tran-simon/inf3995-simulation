@@ -60,11 +60,61 @@
       <body position="-5,0,0" orientation="0,0,0" />
     </box>
 
-    <crazyflie id="drone1">
-      <body position="3,3,0" orientation="0,0,0"/>
-      <controller config="ssc" />
-      <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
-    </crazyflie>
+    <!-- Crazyflies -->
+    <distribute>
+      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <crazyflie id="drone_">
+          <body position="3,3,0" orientation="0,0,0"/>
+          <controller config="ssc" />
+          <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
+        </crazyflie>
+      </entity>
+    </distribute>
+
+    <!-- Hallways -->
+    <box id="hallway_1" size="0.1,9,1.5" movable="false">
+      <body position="1,0.5,0" orientation="0,0,0" />
+    </box>
+
+    <box id="hallway_2" size="0.1,9,1.5" movable="false">
+      <body position="-1,-0.5,0" orientation="0,0,0" />
+    </box>
+
+    <!-- Upper walls -->
+    <distribute>
+      <position method="uniform" min="-2.5,-3.5,0.01" max="-2.5,0,0.01" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="upper_wall_1" size="3,0.1,1.5" movable="false" />
+      </entity>
+    </distribute>
+
+    <distribute>
+      <position method="uniform" min="-3.5,0,0.01" max="-3.5,3.5,0.01" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="upper_wall_2" size="3,0.1,1.5" movable="false" />
+      </entity>
+    </distribute>
+
+    <!-- Lower walls -->
+    <distribute>
+      <position method="uniform" min="2.5,0,0.01" max="2.5,3.5,0.01" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="lower_wall_1" size="3,0.1,1.5" movable="false" />
+      </entity>
+    </distribute>
+
+    <distribute>
+      <position method="uniform" min="3.5,-3.5,0.01" max="3.5,0,0.01" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="lower_wall_2" size="3,0.1,1.5" movable="false" />
+      </entity>
+    </distribute>
   </arena> 
 
 
@@ -97,7 +147,6 @@
                    lens_focal_length="10" />
         </placements>
       </camera>
-      <user_functions label="crazyflie_qt_user_functions" />
     </qt-opengl>
   </visualization>
 

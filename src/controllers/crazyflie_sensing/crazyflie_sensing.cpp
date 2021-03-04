@@ -55,6 +55,10 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_cState = STATE_START;
    m_cDir = CfDir::FRONT;
    m_pDir = CfDir::FRONT;
+   m_CdExplorationState = CfExplorationState::FORWARD;
+   m_CfExplorationDir = static_cast<CfExplorationDir>(stoi(GetId().substr(6))%2);
+   previousDist = -2;
+   previousPos = m_pcPos->GetReading().Position;
    m_uiCurrentStep = 0;
    Reset();
 }
@@ -78,8 +82,8 @@ void CCrazyflieSensing::ControlStep() {
       leftDist = (iterDistRead++)->second;
       backDist = (iterDistRead++)->second;
       rightDist = (iterDistRead)->second;
-      LOG <<"State: " << m_cState;
       /*States management*/
+      LOG << "State : " << m_cState;
       switch (m_cState)
       {
          case STATE_START:
@@ -96,7 +100,6 @@ void CCrazyflieSensing::ControlStep() {
          case STATE_LAND:
             Land();
             break;
-            
          default:
             break;
       }
@@ -111,11 +114,11 @@ void CCrazyflieSensing::TakeOff() {
    if(m_cState != STATE_TAKE_OFF) {
       m_cState = STATE_TAKE_OFF;
       cPos = m_pcPos->GetReading().Position;
-      cPos.SetZ(1.5f);
+      cPos.SetZ(1.0f);
       m_pcPropellers->SetAbsolutePosition(cPos);
    } else {
       cPos = m_pcPos->GetReading().Position;
-      if(Abs(cPos.GetZ() - 1.5f) < 0.1f) {
+      if(Abs(cPos.GetZ() - 1.0f) < 0.1f) {
          m_cBasePos = m_pcPos->GetReading().Position;
          Explore();
       }
@@ -131,23 +134,81 @@ void CCrazyflieSensing::Explore() {
    }
 
    if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
-   
-   if (m_cDir == CfDir::FRONT && frontDist < 30 && frontDist != -2) { m_cDir = CfDir::LEFT; m_pDir = CfDir::FRONT;}
-   if (m_cDir == CfDir::LEFT && leftDist < 30 && leftDist != -2) { m_cDir = CfDir::BACK; m_pDir = CfDir::LEFT;}
-   if (m_cDir == CfDir::BACK && backDist < 30 && backDist != -2) { m_cDir = CfDir::RIGHT; m_pDir = CfDir::BACK;}
-   if (m_cDir == CfDir::RIGHT && rightDist < 30 && rightDist != -2) { m_cDir = CfDir::FRONT; m_pDir = CfDir::RIGHT;}
 
-   if (m_cDir == CfDir::LEFT && m_pDir == CfDir::FRONT && (frontDist > 30 || frontDist == -2)) { m_cDir = CfDir::FRONT;}
-   if (m_cDir == CfDir::BACK && m_pDir == CfDir::LEFT && (leftDist > 30 || leftDist == -2)) { m_cDir = CfDir::LEFT;}
-   if (m_cDir == CfDir::RIGHT && m_pDir == CfDir::BACK && (backDist > 30 || backDist == -2)) { m_cDir = CfDir::BACK;}
-   if (m_cDir == CfDir::FRONT && m_pDir == CfDir::RIGHT && (rightDist > 30 || rightDist == -2)) { m_cDir = CfDir::RIGHT;}
-   LOG<<"Current Dir : "<<m_cDir << std::endl;
-   switch(m_cDir) {
-      case CfDir::FRONT: MoveFoward(1); break;
-      case CfDir::LEFT: MoveLeft(1); break;
-      case CfDir::BACK: MoveBack(1); break;
-      case CfDir::RIGHT: MoveRight(1); break;
+   CRadians c_z_angle, c_y_angle, c_x_angle;
+   m_pcPos->GetReading().Orientation.ToEulerAngles(c_z_angle, c_y_angle, c_x_angle);
+
+   switch(m_CdExplorationState) {
+      case CfExplorationState::FORWARD: 
+      {
+         // If the wall that the drone was following ended
+         Real explorationDist = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? leftDist : rightDist;
+         LOG << "left " << leftDist << std::endl;
+         LOG << "right " << rightDist << std::endl;
+         LOG << "dist " << explorationDist << std::endl;
+         if((explorationDist == -2 || explorationDist > 1.5 * previousDist) && previousDist != -2) {
+            LOG << "THE SIDE : "<< explorationDist << std::endl;
+            m_CdExplorationState = CfExplorationState::WALL_END;
+            break;
+         }
+         
+         // If there is a wall in front of the drone
+         if (frontDist < 40 && frontDist != -2) { 
+            LOG << "THE FRONT : "<< frontDist << std::endl;
+            MoveFoward(0); // Stop any ongoing mvmt
+            m_CdExplorationState = CfExplorationState::ROTATE;
+            m_desiredAngle = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? -1 * CRadians::PI_OVER_TWO : CRadians::PI_OVER_TWO;
+            m_desiredAngle += c_z_angle;
+            break;
+         }
+         // Move the drone forward
+         float velocity = (frontDist < 100 && frontDist != -2) ? (frontDist - 40.0) / 60.0 : 1.0;
+         MoveFoward(velocity * 0.2);  
+
+         /*
+         // Correct the drone orientation if its path is not perpendicular to the wall
+         TODO : put the cathetus and the hypothenuse in the same scale
+         Real cathetus = previousDist;
+         cathetus -= (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? leftDist : rightDist;
+         Real hypotenuse = argos::SquareDistance(previousPos, m_pcPos->GetReading().Position);
+         CRadians deviationAngle = CRadians(ASin(Abs(cathetus) / hypotenuse));
+         Real orientationSign = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? 1.0 : -1.0;
+         m_pcPropellers->SetRelativeYaw(deviationAngle * Sign(cathetus) * orientationSign);
+         */
+
+         break;
+      }
+      case CfExplorationState::WALL_END:
+      {
+         MoveFoward(0); // Stop any ongoing mvmt
+         m_CdExplorationState = CfExplorationState::ROTATE;
+         m_desiredAngle = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? CRadians::PI_OVER_TWO : -1 * CRadians::PI_OVER_TWO;
+         m_desiredAngle += c_z_angle;
+         break;
+      }
+      case CfExplorationState::ROTATE:
+      {
+         if (Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
+            m_CdExplorationState = CfExplorationState::DEBOUNCE;
+            break;
+         } 
+         Rotate(m_desiredAngle);
+         break;
+      }
+      case CfExplorationState::DEBOUNCE:
+      {
+         if (Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
+            m_CdExplorationState = CfExplorationState::FORWARD;
+         } else {
+            m_CdExplorationState = CfExplorationState::ROTATE;
+         }
+         break;
+      }
    }
+
+   previousDist = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? leftDist : rightDist;
+   previousPos = m_pcPos->GetReading().Position;
+   
 }
 
 /****************************************/
@@ -228,6 +289,13 @@ void CCrazyflieSensing::MoveRight(float velocity) {
 /****************************************/
 /****************************************/
 
+void CCrazyflieSensing::Rotate(CRadians angle) {
+   m_pcPropellers->SetAbsoluteYaw(angle);
+}
+
+/****************************************/
+/****************************************/
+
 void CCrazyflieSensing::Reset() {
    m_cState = STATE_START;
 }
@@ -245,13 +313,7 @@ void CCrazyflieSensing::CheckDronePosition() {
 
 /****************************************/
 /****************************************/
-void CCrazyflieSensing::MoveForward(float step) {
-   CCI_PositioningSensor::SReading positionRead = m_pcPos->GetReading();
-   CRadians cZAngle, cYAngle, cXAngle;
-   positionRead.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = positionRead.Position + CVector3(step * Sin(cZAngle), -step * Cos(cZAngle), 0);
-   m_pcPropellers->SetAbsolutePosition(desiredPos);
-}
+
 /*
  * This statement notifies ARGoS of the existence of the controller.
  * It binds the class passed as first argument to the string passed as

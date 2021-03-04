@@ -63,13 +63,6 @@ public:
    virtual void ControlStep();
 
    /*
-    * This function takes a step as param and moves
-    * according to that step 
-    */
-   virtual void MoveForward(float step);
-
-
-   /*
     * This function checks the current distances between drones
     * and logs it.
     */
@@ -131,6 +124,11 @@ public:
    ***/
    void MoveRight(float velocity);
 
+   /***This function makes the drone rotate
+    * @param velocity Speed at which the drone moves. 
+   ***/
+   void Rotate(CRadians angle);
+
 private:
    enum CfState {
       STATE_START,
@@ -145,6 +143,18 @@ private:
       LEFT,
       BACK,
       RIGHT
+   };
+
+   enum CfExplorationState {
+      FORWARD,
+      WALL_END,
+      ROTATE,
+      DEBOUNCE
+   };
+
+   enum CfExplorationDir {
+      LEFT_WALL,
+      RIGHT_WALL
    };
 
 private:
@@ -182,6 +192,7 @@ private:
    /*Current and previous mvmt of the drone*/
    CfDir m_cDir;
    CfDir m_pDir;
+   CRadians m_desiredAngle;
 
    /*Current drone to object distance in the front direction*/
    Real frontDist;
@@ -197,6 +208,13 @@ private:
 
    /* Current step */
    uint m_uiCurrentStep;
+
+   /*Robot exploration direction (left / right wall follower)*/
+   CfExplorationDir m_CfExplorationDir;
+   CfExplorationState m_CdExplorationState;
+   Real previousDist;
+   CVector3 previousPos;
+
 };
 
 #endif
