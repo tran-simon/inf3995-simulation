@@ -143,12 +143,17 @@ void CCrazyflieSensing::ControlStep() {
    char command;
    if(firstTime == 0){
       fd = ConnectToSocket();
+      std::string id = this->GetId();
+      const char *buf = id.c_str();
+      send(fd, buf, strlen(buf), 0);
    }
 
    while(waitingForStart){
       if(fd != 1000){
          command = ReadCommand(fd);
          if(command == 's'){
+            const char *buf = "SEND WTV INFO HERE ON TAKE OFF";
+            send(fd, buf, strlen(buf), 0);
             waitingForStart = false; 
          }
       }
