@@ -64,6 +64,8 @@ public:
 
    char ReadCommand(int fd);
 
+   void CreateCommand(int fd, char* message, int value);
+
    void SendCommand(int fd, char* message);
 
    /*
@@ -157,6 +159,12 @@ private:
       STATE_LAND
    };
 
+   enum CfValue {
+      STATE,
+      BATTERY,
+      VELOCITY
+   };
+
    enum CfDir {
       FRONT,
       LEFT,
@@ -195,9 +203,6 @@ private:
 
    /*Current state of the battery*/
    CCI_BatterySensor::SReading sBatRead;
-
-   /*Current speed of the drone*/
-   CCI_PositioningSensor::SReading sPosRead;
 
    /*Current and previous mvmt of the drone*/
    CfDir m_cDir;

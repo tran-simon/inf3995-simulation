@@ -14,8 +14,9 @@
 #include <arpa/inet.h>
 #define PORT 80
 static bool waitingForStart = true;
-static int fd =0;
-static int firstTime =0; 
+static int fd = 0;
+static int firstTime = 0; 
+static int velocity = 1;
 
 /****************************************/
 /****************************************/
@@ -136,9 +137,27 @@ char CCrazyflieSensing::ReadCommand(int fd) {
    return buffer[index];
 }
 
+
+void CCrazyflieSensing::CreateCommand(int fd, char* message, int value) {
+   char markedBuffer[1024] = {0};
+   switch (value) {
+      case STATE:
+         markedBuffer[0] = 's';
+         break;
+      case BATTERY:
+         markedBuffer[0] = 'b';
+         break;
+      case VELOCITY:
+         markedBuffer[0] = 'v';
+         break;
+      
+   }
+   strcat(markedBuffer, message);
+   SendCommand(fd, markedBuffer);
+}
+
 void CCrazyflieSensing::SendCommand(int fd, char* message) {
    send(fd, message, sizeof(message), 0);
-
 }
 
 /****************************************/
@@ -157,8 +176,6 @@ void CCrazyflieSensing::ControlStep() {
       if(fd != 1000){
          command = ReadCommand(fd);
          if(command == 's'){
-            const char *buf = "SEND WTV INFO HERE ON TAKE OFF";
-            send(fd, buf, strlen(buf), 0);
             waitingForStart = false; 
          }
       }
@@ -171,14 +188,15 @@ void CCrazyflieSensing::ControlStep() {
 
    LOG << "Battery level: " << sBatRead.AvailableCharge << std::endl;
 
-   // Look velocity (not actual velocity)
-   sPosRead = m_pcPos->GetReading();
-   
-   LOG << "Velocity: " << sPosRead.Position << std::endl;
-
-   char buffer[1024];
-   strcpy(buffer, std::to_string(sBatRead.AvailableCharge).c_str());
-   SendCommand(fd, buffer);
+   char stateBuffer[1024] = {0};
+   stateBuffer[0] = '0' + m_cState;
+   char batteryBuffer[1024] = {0};
+   strcpy(batteryBuffer, std::to_string(sBatRead.AvailableCharge).c_str());
+   char velocityBuffer[1024] = {0};
+   velocityBuffer[0] = '0' + velocity;
+   CreateCommand(fd, stateBuffer, STATE);
+   CreateCommand(fd, batteryBuffer, BATTERY);
+   CreateCommand(fd, velocityBuffer, VELOCITY);
 
    CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
@@ -258,10 +276,10 @@ void CCrazyflieSensing::Explore() {
    if (m_cDir == CfDir::FRONT && m_pDir == CfDir::RIGHT && (rightDist > 30 || rightDist == -2)) { m_cDir = CfDir::RIGHT;}
     LOG<<"Current Dir : "<<m_cDir << std::endl;
    switch(m_cDir) {
-      case CfDir::FRONT: MoveFoward(1); break;
-      case CfDir::LEFT: MoveLeft(1); break;
-      case CfDir::BACK: MoveBack(1); break;
-      case CfDir::RIGHT: MoveRight(1); break;
+      case CfDir::FRONT: MoveFoward(velocity); break;
+      case CfDir::LEFT: MoveLeft(velocity); break;
+      case CfDir::BACK: MoveBack(velocity); break;
+      case CfDir::RIGHT: MoveRight(velocity); break;
    }
 }
 
