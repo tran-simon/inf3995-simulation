@@ -136,6 +136,11 @@ char CCrazyflieSensing::ReadCommand(int fd) {
    return buffer[index];
 }
 
+void CCrazyflieSensing::SendCommand(int fd, char* message) {
+   send(fd, message, sizeof(message), 0);
+
+}
+
 /****************************************/
 /****************************************/
 
@@ -163,7 +168,17 @@ void CCrazyflieSensing::ControlStep() {
 
    // Look battery level
    sBatRead = m_pcBattery->GetReading();
-   LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
+
+   LOG << "Battery level: " << sBatRead.AvailableCharge << std::endl;
+
+   // Look velocity (not actual velocity)
+   sPosRead = m_pcPos->GetReading();
+   
+   LOG << "Velocity: " << sPosRead.Position << std::endl;
+
+   char buffer[1024];
+   strcpy(buffer, std::to_string(sBatRead.AvailableCharge).c_str());
+   SendCommand(fd, buffer);
 
    CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
@@ -174,7 +189,7 @@ void CCrazyflieSensing::ControlStep() {
       leftDist = (iterDistRead++)->second;
       backDist = (iterDistRead++)->second;
       rightDist = (iterDistRead)->second;
-       LOG <<"State: " << m_cState;
+       LOG <<"State: " << m_cState << std::endl;
       /*States management*/
       switch (m_cState)
       {

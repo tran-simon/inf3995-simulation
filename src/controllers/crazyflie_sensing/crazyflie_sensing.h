@@ -64,6 +64,8 @@ public:
 
    char ReadCommand(int fd);
 
+   void SendCommand(int fd, char* message);
+
    /*
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
@@ -193,6 +195,9 @@ private:
 
    /*Current state of the battery*/
    CCI_BatterySensor::SReading sBatRead;
+
+   /*Current speed of the drone*/
+   CCI_PositioningSensor::SReading sPosRead;
 
    /*Current and previous mvmt of the drone*/
    CfDir m_cDir;
