@@ -149,7 +149,8 @@ private:
       FORWARD,
       WALL_END,
       ROTATE,
-      DEBOUNCE
+      DEBOUNCE,
+      AVOID_WALL
    };
 
    enum CfExplorationDir {

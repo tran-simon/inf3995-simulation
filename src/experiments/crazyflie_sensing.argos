@@ -60,11 +60,10 @@
       <body position="-5,0,0" orientation="0,0,0" />
     </box>
 
-    <!-- Crazyflies -->
     <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <position method="uniform" min="-5,-5,0" max="5,5,0" />
       <orientation method="constant" values="0,0,0" />
-      <entity quantity="1" max_trials="100">
+      <entity quantity="4" max_trials="100">
         <crazyflie id="drone_">
           <body position="3,3,0" orientation="0,0,0"/>
           <controller config="ssc" />
@@ -72,6 +71,7 @@
         </crazyflie>
       </entity>
     </distribute>
+    
 
     <!-- Hallways -->
     <box id="hallway_1" size="0.1,9,1.5" movable="false">
