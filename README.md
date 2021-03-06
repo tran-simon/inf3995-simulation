@@ -1,6 +1,6 @@
 ```
-docker build . --tag firmware --network host
-x11docker firmware --hostdisplay --hostnet --user=RETAIN
+docker build . --tag simulation --network host
+x11docker simulation --hostdisplay --hostnet --user=RETAIN
 ```
 
 

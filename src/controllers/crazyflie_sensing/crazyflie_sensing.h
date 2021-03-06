@@ -30,6 +30,7 @@
 #include <argos3/plugins/robots/generic/control_interface/ci_battery_sensor.h>
 /* Definitions for random number generation */
 #include <argos3/core/utility/math/rng.h>
+#include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
@@ -63,41 +64,6 @@ public:
    virtual void ControlStep();
 
    /*
-    * This function takes a step as param and moves
-    * according to that step 
-    */
-   virtual void MoveForward(float step);
-
-   /*
-    * This function verifies that the drones
-    * arent about to crash together and deviates the
-    * drones according to the situation
-    */
-   virtual void VerifieDroneProximity();
-
-
-   /*
-    * This function checks the current distances between drones
-    * and logs it.
-    */
-   virtual void CheckDronePosition();
-
-   /*
-    * This function resets the controller to its state right after the
-    * Init().
-    * It is called when you press the reset button in the GUI.
-    */
-   virtual void Reset();
-
-   /*
-    * Called to cleanup what done by Init() when the experiment finishes.
-    * In this example controller there is no need for clean anything up,
-    * so the function could have been omitted. It's here just for
-    * completeness.
-    */
-   virtual void Destroy() {}
-
-   /*
     * This function lifts the drone from the ground
     */
    void TakeOff();
@@ -118,27 +84,63 @@ public:
     */
    void Land();
 
-   /***This function makes the drone moves forward
+   /*
+    * This function checks the current distances between drones
+    * and logs it.
+    */
+   virtual void CheckDronePosition();
+
+   /*** This function makes the drone moves forward
     * @param velocity Speed at which the drone moves.
    ***/
-   void MoveFoward(float velocity);
+   void MoveForward(float velocity);
 
-   /***This function makes the drone moves to the left
+   /*** This function makes the drone moves to the left
     * @param velocity Speed at which the drone moves.
    ***/
    void MoveLeft(float velocity);
 
-   /***This function makes the drone moves backwards
+   /*** This function makes the drone moves backwards
     * @param velocity Speed at which the drone moves. 
    ***/
    void MoveBack(float velocity);
 
-   /***This function makes the drone moves to the right
+   /*** This function makes the drone moves to the right
     * @param velocity Speed at which the drone moves. 
    ***/
    void MoveRight(float velocity);
 
+   /***
+    * This function makes the drone rotate
+    * @param angle Angle at which the drone rotates. 
+   ***/
+   void Rotate(CRadians angle);
+
+   /*
+    * This function resets the controller to its state right after the
+    * Init().
+    * It is called when you press the reset button in the GUI.
+    */
+   virtual void Reset();
+
+   /*
+    * Called to cleanup what done by Init() when the experiment finishes.
+    * In this example controller there is no need for clean anything up,
+    * so the function could have been omitted. It's here just for
+    * completeness.
+    */
+   virtual void Destroy() {}
+
 private:
+   /**
+    * Enum that represents mission states.
+    * 
+    * STATE_START      = 0
+    * STATE_TAKE_OFF   = 1
+    * STATE_EXPLORE    = 2
+    * STATE_GO_TO_BASE = 3
+    * STATE_LAND       = 4
+   **/
    enum CfState {
       STATE_START,
       STATE_TAKE_OFF,
@@ -147,11 +149,42 @@ private:
       STATE_LAND
    };
 
+   /**
+    * Enum that represents cardinal direction relative to the drone orientation.
+    * 
+    * FRONT = 0
+    * LEFT =  1
+    * BACK =  2
+    * RIGHT = 3
+    * NONE =  4
+   **/
    enum CfDir {
       FRONT,
       LEFT,
       BACK,
-      RIGHT
+      RIGHT, 
+      NONE
+   };
+
+   /**
+    * Enum that represents cinner states of explorations.
+    * 
+    * FORWARD = 0
+    * WALL_END =  1
+    * ROTATE =  2
+    * DEBOUNCE = 3
+   **/
+   enum CfExplorationState {
+      FORWARD,
+      WALL_END,
+      ROTATE,
+      DEBOUNCE,
+      AVOID_WALL
+   };
+
+   enum CfExplorationDir {
+      LEFT_WALL,
+      RIGHT_WALL
    };
 
 private:
@@ -189,6 +222,8 @@ private:
    /*Current and previous mvmt of the drone*/
    CfDir m_cDir;
    CfDir m_pDir;
+   
+   CRadians m_desiredAngle;
 
    /*Current drone to object distance in the front direction*/
    Real frontDist;
@@ -204,6 +239,13 @@ private:
 
    /* Current step */
    uint m_uiCurrentStep;
+
+   /*Robot exploration direction (left / right wall follower)*/
+   CfExplorationDir m_CfExplorationDir;
+   CfExplorationState m_CdExplorationState;
+
+   Real previousDist;
+   CVector3 previousPos;
 };
 
 #endif
