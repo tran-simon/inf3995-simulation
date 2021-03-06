@@ -74,10 +74,13 @@ void CCrazyflieSensing::ControlStep() {
    LOG << "+====START====+" << std::endl;
    // Look battery level
    sBatRead = m_pcBattery->GetReading();
-   LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
+   //LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
    CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
    auto iterDistRead = sDistRead.begin();
+
+   // Check if drone are too close
+   CheckDronePosition();
 
    if(sDistRead.size() == 4) {
       /*Updates of the distance sensor*/
@@ -122,7 +125,7 @@ void CCrazyflieSensing::Explore() {
       m_cState = STATE_EXPLORE;
    }
 
-   if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
+   //if (sBatRead.AvailableCharge < 0.3) { GoToBase();}
 
    CRadians c_z_angle, c_y_angle, c_x_angle;
    m_pcPos->GetReading().Orientation.ToEulerAngles(c_z_angle, c_y_angle, c_x_angle);
@@ -141,6 +144,11 @@ void CCrazyflieSensing::Explore() {
             LOG << "THE SIDE : " << explorationDist << std::endl;
             m_CdExplorationState = WALL_END;
             break;
+         }
+
+         // If the drone is too close from a wall
+         if (explorationDist < 30 && explorationDist != -2) {
+            m_CdExplorationState = CfExplorationState::AVOID_WALL;
          }
          
          // If there is a wall in front of the drone
@@ -194,6 +202,25 @@ void CCrazyflieSensing::Explore() {
          }
          break;
       }
+      case CfExplorationState::AVOID_WALL:
+      {
+         Real explorationDist = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? leftDist : rightDist;
+         if (explorationDist > 40) {
+            m_CdExplorationState = CfExplorationState::FORWARD;
+            break;
+         } else if (explorationDist == -2) {
+            m_CdExplorationState = CfExplorationState::WALL_END;
+            break;
+         }
+
+         if (m_CfExplorationDir == CfExplorationDir::LEFT_WALL) {
+            m_pcPropellers->SetRelativePosition(CVector3(-0.05, 0, 0));
+         } else {
+            m_pcPropellers->SetRelativePosition(CVector3(0.05, 0, 0));
+         }
+         break;
+      }
+
    }
    previousDist = (m_CfExplorationDir == LEFT_WALL)? leftDist : rightDist;
    previousPos = m_pcPos->GetReading().Position;
