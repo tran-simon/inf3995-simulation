@@ -58,20 +58,7 @@
     </box>
     <box id="wall_west" size="0.1,10,1.5" movable="false">
       <body position="-5,0,0" orientation="0,0,0" />
-    </box>
-
-    <distribute>
-      <position method="uniform" min="-5,-5,0" max="5,5,0" />
-      <orientation method="constant" values="0,0,0" />
-      <entity quantity="4" max_trials="100">
-        <crazyflie id="drone_">
-          <body position="3,3,0" orientation="0,0,0"/>
-          <controller config="ssc" />
-          <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
-        </crazyflie>
-      </entity>
-    </distribute>
-    
+    </box>  
 
     <!-- Hallways -->
     <box id="hallway_1" size="0.1,9,1.5" movable="false">
@@ -113,6 +100,18 @@
       <orientation method="constant" values="0,0,0" />
       <entity quantity="1" max_trials="100">
         <box id="lower_wall_2" size="3,0.1,1.5" movable="false" />
+      </entity>
+    </distribute>
+
+    <distribute>
+      <position method="uniform" min="-5,-5,0" max="5,5,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="4" max_trials="100">
+        <crazyflie id="drone_">
+          <body position="3,3,0" orientation="0,0,0"/>
+          <controller config="ssc" />
+          <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
+        </crazyflie>
       </entity>
     </distribute>
   </arena> 
