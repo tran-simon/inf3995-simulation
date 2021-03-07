@@ -30,6 +30,7 @@
 #include <argos3/plugins/robots/generic/control_interface/ci_battery_sensor.h>
 /* Definitions for random number generation */
 #include <argos3/core/utility/math/rng.h>
+#include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
@@ -41,11 +42,58 @@ using namespace argos;
  * A controller is simply an implementation of the CCI_Controller class.
  */
 class CCrazyflieSensing : public CCI_Controller {
-
 public:
+   /**
+    * Enum that represents mission states.
+    * 
+    * STATE_START      = 0
+    * STATE_TAKE_OFF   = 1
+    * STATE_EXPLORE    = 2
+    * STATE_GO_TO_BASE = 3
+    * STATE_LAND       = 4
+   **/
+   enum CfState {
+      STATE_START,
+      STATE_TAKE_OFF,
+      STATE_EXPLORE,
+      STATE_GO_TO_BASE,
+      STATE_LAND
+   };
+
+   /**
+    * Enum that represents inner states of explorations.
+    * 
+    * FORWARD = 0
+    * WALL_END =  1
+    * ROTATE =  2
+    * DEBOUNCE = 3
+   **/
+   enum CfExplorationState {
+      FORWARD,
+      WALL_END,
+      ROTATE,
+      DEBOUNCE,
+      AVOID_WALL
+   };
+
+   enum CfExplorationDir {
+      LEFT_WALL,
+      RIGHT_WALL
+   };
+
+   /* Gives the distance at which drones returns -2 as mesured distance */
+   static uint const MAX_VIEW_DIST = 200;
+
+   /* Arbitrary distance value from which the drone can 
+      no longer approach an object*/
+   static uint const DETECTION_THRESHOLD = 45U;
+
+   /* Arbitrary number of steps between each mobility evaluation */
+   static uint const MOBILITY_DELAY = 30U;
 
    /* Class constructor. */
    CCrazyflieSensing();
+
    /* Class destructor. */
    virtual ~CCrazyflieSensing() {}
 
@@ -75,41 +123,6 @@ public:
    virtual void ControlStep();
 
    /*
-    * This function takes a step as param and moves
-    * according to that step 
-    */
-   virtual void MoveForward(float step);
-
-   /*
-    * This function verifies that the drones
-    * arent about to crash together and deviates the
-    * drones according to the situation
-    */
-   virtual void VerifieDroneProximity();
-
-
-   /*
-    * This function checks the current distances between drones
-    * and logs it.
-    */
-   virtual void CheckDronePosition();
-
-   /*
-    * This function resets the controller to its state right after the
-    * Init().
-    * It is called when you press the reset button in the GUI.
-    */
-   virtual void Reset();
-
-   /*
-    * Called to cleanup what done by Init() when the experiment finishes.
-    * In this example controller there is no need for clean anything up,
-    * so the function could have been omitted. It's here just for
-    * completeness.
-    */
-   virtual void Destroy() {}
-
-   /*
     * This function lifts the drone from the ground
     */
    void TakeOff();
@@ -130,49 +143,39 @@ public:
     */
    void Land();
 
-   /***This function makes the drone moves forward
+   /*** This function makes the drone moves forward
     * @param velocity Speed at which the drone moves.
    ***/
-   void MoveFoward(float velocity);
+   void MoveForward(float velocity);
 
-   /***This function makes the drone moves to the left
-    * @param velocity Speed at which the drone moves.
+   /*** 
+    * This function makes the drone rotate
+    * @param angle Angle at which the drone rotates. 
    ***/
-   void MoveLeft(float velocity);
+   void Rotate(CRadians angle);
 
-   /***This function makes the drone moves backwards
-    * @param velocity Speed at which the drone moves. 
-   ***/
-   void MoveBack(float velocity);
+   /*
+    * This function resets the controller to its state right after the
+    * Init().
+    * It is called when you press the reset button in the GUI.
+    */
+   virtual void Reset();
 
-   /***This function makes the drone moves to the right
-    * @param velocity Speed at which the drone moves. 
-   ***/
-   void MoveRight(float velocity);
+   /*
+    * Called to cleanup what done by Init() when the experiment finishes.
+    * In this example controller there is no need for clean anything up,
+    * so the function could have been omitted. It's here just for
+    * completeness.
+    */
+   virtual void Destroy() {}
 
 private:
-   enum CfState {
-      STATE_START,
-      STATE_TAKE_OFF,
-      STATE_EXPLORE,
-      STATE_GO_TO_BASE,
-      STATE_LAND
-   };
 
    enum CfValue {
       STATE,
       BATTERY,
       VELOCITY
    };
-
-   enum CfDir {
-      FRONT,
-      LEFT,
-      BACK,
-      RIGHT
-   };
-
-private:
 
    /* Pointer to the crazyflie distance sensor */
    CCI_CrazyflieDistanceScannerSensor* m_pcDistance;
@@ -198,15 +201,13 @@ private:
    /* Base position on take off */
    CVector3 m_cBasePos;
 
-   /*Current state of the drone*/
+   /*Current and previous state of the drone*/
    CfState m_cState;
 
    /*Current state of the battery*/
    CCI_BatterySensor::SReading sBatRead;
-
-   /*Current and previous mvmt of the drone*/
-   CfDir m_cDir;
-   CfDir m_pDir;
+   
+   CRadians m_desiredAngle;
 
    /*Current drone to object distance in the front direction*/
    Real frontDist;
@@ -222,6 +223,16 @@ private:
 
    /* Current step */
    uint m_uiCurrentStep;
+
+
+   /*Robot exploration direction (left / right wall follower)*/
+   CfExplorationDir m_CfExplorationDir;
+   CfExplorationState m_CdExplorationState;
+
+   Real previousDist;
+   CVector3 previousPos;
+   bool isReturning; 
+
 };
 
 #endif

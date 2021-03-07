@@ -1,6 +1,4 @@
 FROM ubuntu:18.04
-LABEL Maintainer="Pierre-Yves Lajoie <pierre-yves.lajoie@polymtl.ca>"
-LABEL argos-example.version="0.1"
 
 
 # Install common dependencies
@@ -67,7 +65,7 @@ RUN chmod +x ./argos3/build_simulator/argos_post_install.sh &&\
 ARG UPDATE_CODE=unknown
 
 
-COPY ./src ./firmware
+COPY ./src ./simulation
 
 ENV PORT=4000
 
@@ -90,7 +88,7 @@ EXPOSE 4000
 #    git checkout inf3995
 
 # Build your code (here examples)
-WORKDIR ./firmware
+WORKDIR ./simulation
 RUN mkdir build && cd build &&\
     cmake -DCMAKE_BUILD_TYPE=Debug .. &&\
     make -j $(nproc)
