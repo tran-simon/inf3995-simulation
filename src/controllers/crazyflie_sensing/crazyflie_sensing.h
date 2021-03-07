@@ -60,6 +60,12 @@ public:
       STATE_LAND
    };
 
+   enum CfValue {
+      STATE,
+      BATTERY,
+      VELOCITY
+   };
+
    /**
     * Enum that represents inner states of explorations.
     * 
@@ -104,6 +110,18 @@ public:
     */
    virtual void Init(TConfigurationNode& t_node);
 
+   /***This function connects to the socket running
+    * on the backend in order to communicate when
+    * to start and land.
+   ***/
+   int ConnectToSocket();
+
+   char ReadCommand(int fd);
+
+   void CreateCommand(int fd, char* message, int value);
+
+   void SendCommand(int fd, char* message);
+
    /*
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
@@ -132,9 +150,9 @@ public:
    void Land();
 
    /*** This function makes the drone moves forward
-    * @param velocity Speed at which the drone moves.
+    * 
    ***/
-   void MoveForward(float velocity);
+   void MoveForward();
 
    /*** 
     * This function makes the drone rotate
