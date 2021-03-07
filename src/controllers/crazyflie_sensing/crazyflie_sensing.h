@@ -60,6 +60,12 @@ public:
       STATE_LAND
    };
 
+   enum CfValue {
+      STATE,
+      BATTERY,
+      VELOCITY
+   };
+
    /**
     * Enum that represents inner states of explorations.
     * 
@@ -144,9 +150,9 @@ public:
    void Land();
 
    /*** This function makes the drone moves forward
-    * @param velocity Speed at which the drone moves.
+    * 
    ***/
-   void MoveForward(float velocity);
+   void MoveForward();
 
    /*** 
     * This function makes the drone rotate
@@ -170,12 +176,6 @@ public:
    virtual void Destroy() {}
 
 private:
-
-   enum CfValue {
-      STATE,
-      BATTERY,
-      VELOCITY
-   };
 
    /* Pointer to the crazyflie distance sensor */
    CCI_CrazyflieDistanceScannerSensor* m_pcDistance;
