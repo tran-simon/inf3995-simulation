@@ -51,17 +51,12 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    /* Create a random number generator. We use the 'argos' category so
       that creation, reset, seeding and cleanup are managed by ARGoS. */
    m_pcRNG = CRandom::CreateRNG("argos");
-   m_cState = STATE_START;
-   m_cDir = FRONT;
-   m_pDir = FRONT;
+   m_cState = CfState::STATE_START;
    m_CdExplorationState = CfExplorationState::FORWARD;
    m_CfExplorationDir = static_cast<CfExplorationDir>(stoi(GetId().substr(6))%2);
    previousDist = -2;
    previousPos = m_pcPos->GetReading().Position;
    m_uiCurrentStep = 0;
-   m_uiMobilityStep = 0;
-   m_uiWayPointsDelay = 0;
-   isMobile = true;
    isReturning = false;
    Reset();
 }
@@ -82,7 +77,7 @@ void CCrazyflieSensing::ControlStep() {
       auto iterDistRead = sDistRead.begin();
 
       // Check if drone are too close
-      CheckDronePosition();
+      //CheckDronePosition();
 
       if(sDistRead.size() == 4) {
          /*Updates of the distance sensor*/
@@ -150,7 +145,6 @@ void CCrazyflieSensing::Explore() {
       
       if (isReturning) {
          Real distToBase = Distance(cpos, m_cBasePos);
-         LOG << "Dst: " << distToBase << std::endl;
          if(distToBase < 0.5) {
             Land();
          }
@@ -193,7 +187,6 @@ void CCrazyflieSensing::Explore() {
          case CfExplorationState::ROTATE: {
             if(Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
                m_CdExplorationState = DEBOUNCE;
-               //referencePoints.push_back(m_pcPos->GetReading().Position);
                break;
             } 
             Rotate(m_desiredAngle);
@@ -269,141 +262,6 @@ void CCrazyflieSensing::Land() {
 } 
 
 /****************************************/
-/*          Utilities functions         */
-/****************************************/
-
-bool CCrazyflieSensing::VerifieDroneProximity() {
-   bool state = false;
-   if (m_pcRABS->GetReadings()[0].Range < 45){
-      int positionInDegrees = (int)(m_pcRABS->GetReadings()[0].HorizontalBearing.GetValue() * CRadians::RADIANS_TO_DEGREES);
-      if ( positionInDegrees >= 0 && positionInDegrees < 90){ //Drone is located between 0 and PI/2
-            m_cDir = RIGHT;
-            LOG << "MOVING AWAY, GOING RIGHT" << std::endl;
-      } else if(positionInDegrees >= 90 && positionInDegrees <= 180){ //Drone is located between PI/2 and PI
-            m_cDir = LEFT;
-            LOG << "MOVING AWAY, GOING LEFT" << std::endl;
-      } else if(positionInDegrees <= -1 && positionInDegrees >= -90){ // Drone is located between 0 and 3PI/2
-            m_cDir = BACK;
-            LOG << "MOVING AWAY, GOING BACK" << std::endl;
-      } else if(positionInDegrees < -90 && positionInDegrees > -180){ //Drone is located between 3PI/2 and PI
-            m_cDir = BACK;
-            LOG << "MOVING AWAY, GOING BACK" << std::endl;
-      }
-      state = true;
-   }
-   return state; 
-}
-
-void CCrazyflieSensing::CheckDronePosition() {
-   for (int i = 0; i < m_pcRABS->GetReadings().size(); i++ ){
-      Real droneDistance = m_pcRABS->GetReadings()[i].Range;
-      if (droneDistance < 60){ // Figure out a good distance
-         LOG << "DANGER TOO CLOSE!"<< std::endl; // Remplace par disperese function call
-      }
-   }
-}
-
-CCrazyflieSensing::CfDir CCrazyflieSensing::GetBestDirection(const CVector3& destination, bool pCheck, bool possibilities[4]) {
-   CCI_PositioningSensor::SReading cPos = m_pcPos->GetReading();
-   CRadians cZAngle, cYAngle, cXAngle;
-   cPos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-
-   /*Distance between current drone location and the base*/
-   Real distToBase = Distance(cPos.Position, destination);
-   
-   /*Best cardinal direction for the drone to go*/
-   CfDir bestDir = NONE;
-   
-   /*Smallest distance to the goal position*/
-   Real bestDist = -1;
-   for(int i = 0; i < 4; i++) {
-      Real cX, cY, predictDist;
-
-      /*If checkPossibilities is true, then every direction is evaluated*/
-      if(possibilities[i] || pCheck) {
-         switch (i) {
-            case FRONT: 
-               cX = Sin(cZAngle);
-               cY = -Cos(cZAngle);
-               break;
-            case LEFT:
-               cX = Cos(cZAngle);
-               cY = -Sin(cZAngle);
-               break;
-            case BACK:
-               cX = -Sin(cZAngle);
-               cY = Cos(cZAngle);
-               break;
-            case RIGHT:
-               cX = -Cos(cZAngle);
-               cY = Sin(cZAngle);
-               break;
-            default:
-               break;
-         }
-         predictDist = Distance(cPos.Position + CVector3(cX, cY, cPos.Position.GetZ()), destination);
-         if(bestDist == -1 || bestDist >= predictDist) {
-            bestDist = predictDist;
-            bestDir = (CfDir)i;
-         }
-      }
-   }
-   return bestDir;
-}
-
-CCrazyflieSensing::CfDir CCrazyflieSensing::InvDirection(CfDir direction) {
-   CfDir inverse = NONE;
-   switch (direction) {
-      case FRONT: inverse = BACK;  break;
-      case LEFT:  inverse = RIGHT; break;
-      case BACK:  inverse = FRONT; break;
-      case RIGHT: inverse = LEFT;  break;
-      case NONE: break;
-      default: break;
-   }
-   return inverse;
-}
-
-int CCrazyflieSensing::CountObstructions(bool possibilities [4]){
-   int obstructionsCount = 0;
-   for(int i = 0; i < 4; i++) {
-      if(!possibilities[i]) {
-         obstructionsCount++;
-      }
-   }
-   return obstructionsCount;
-}
-
-void CCrazyflieSensing::VerifyMobility() {
-   CCI_PositioningSensor::SReading cPos = m_pcPos->GetReading();
-   if(m_uiMobilityStep == 0) {
-      m_pPos = cPos.Position;
-   }
-   m_uiMobilityStep++;
-   if(m_uiMobilityStep >= MOBILITY_DELAY) {
-      Real currentDelta = Distance(m_pPos, cPos.Position);
-      Real distFromBase = Distance(m_cBasePos, cPos.Position);
-      isMobile = !(currentDelta < 0.8f && Abs(distFromBase) > 0.6);
-      m_uiMobilityStep = 0;
-
-      LOG << "Delta: " << currentDelta << std::endl;
-   }
-}
-
-void CCrazyflieSensing::AddWayPoint() {
-   CCI_PositioningSensor::SReading cPos = m_pcPos->GetReading();
-   if(m_uiWayPointsDelay == 0) {
-      m_wPos = cPos.Position;
-   }
-   m_uiWayPointsDelay++;
-   if(m_uiWayPointsDelay >= 10) {
-      m_uiWayPointsDelay = 0;
-      referencePoints.push_back(cPos.Position);
-      LOG << "Added a checkpoint: " << std::endl;
-   }
-}
-
-/****************************************/
 /*           Movements functions        */
 /****************************************/
 
@@ -413,44 +271,6 @@ void CCrazyflieSensing::MoveForward(float velocity) {
    cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
    CVector3 desiredPos = cpos.Position + CVector3(velocity * Sin(cZAngle), -velocity*Cos(cZAngle), 0);
    m_pcPropellers->SetAbsolutePosition(desiredPos);
-}
-
-void CCrazyflieSensing::MoveLeft(float velocity) {
-   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
-   CRadians cZAngle, cYAngle, cXAngle;
-   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(velocity * Cos(cZAngle), -velocity*Sin(cZAngle), 0);
-   m_pcPropellers->SetAbsolutePosition(desiredPos);
-}
-
-void CCrazyflieSensing::MoveBack(float velocity) {
-   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
-   CRadians cZAngle, cYAngle, cXAngle;
-   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(-velocity*Sin(cZAngle), velocity*Cos(cZAngle), 0);
-   m_pcPropellers->SetAbsolutePosition(desiredPos);
-}
-
-void CCrazyflieSensing::MoveRight(float velocity) {
-   CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
-   CRadians cZAngle, cYAngle, cXAngle;
-   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(-velocity * Cos(cZAngle), velocity*Sin(cZAngle), 0);
-   m_pcPropellers->SetAbsolutePosition(desiredPos);
-}
-
-void CCrazyflieSensing::Move(CfDir direction, float velocity) {
-   LOG << "Current Dir : " << direction << std::endl;
-      switch(direction) {
-         case FRONT: MoveForward(velocity); break;
-         case LEFT:  MoveLeft(velocity);   break;
-         case BACK:  MoveBack(velocity);   break;
-         case RIGHT: MoveRight(velocity);  break;
-         case NONE: 
-            LOG << "Didn't move" << std::endl;
-            break;
-         default: break;
-      }
 }
 
 void CCrazyflieSensing::Rotate(CRadians angle) {

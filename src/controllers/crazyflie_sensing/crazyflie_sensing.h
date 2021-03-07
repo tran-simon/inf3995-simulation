@@ -32,7 +32,6 @@
 #include <argos3/core/utility/math/rng.h>
 #include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
-#include <vector>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -59,23 +58,6 @@ public:
       STATE_EXPLORE,
       STATE_GO_TO_BASE,
       STATE_LAND
-   };
-
-   /**
-    * Enum that represents cardinal direction relative to the drone orientation.
-    * 
-    * FRONT = 0
-    * LEFT =  1
-    * BACK =  2
-    * RIGHT = 3
-    * NONE =  4
-   **/
-   enum CfDir {
-      FRONT,
-      LEFT,
-      BACK,
-      RIGHT, 
-      NONE
    };
 
    /**
@@ -149,94 +131,11 @@ public:
     */
    void Land();
 
-   /*
-    * This function verifies that the drones
-    * arent about to crash together and deviates the
-    * drones according to the situation
-    */
-   virtual bool VerifieDroneProximity();
-
-   /*
-    * This function checks the current distances between drones
-    * and logs it.
-    */
-   virtual void CheckDronePosition();
-
-   /***
-    * This function evaluates, based on the current position 
-    * and environment of the drone, the cardinal direction 
-    * that would shorten the distance between a point and  
-    * the position of the drone the most.
-    * @param destination A 3D vector that represents the 
-    * destination point in space aimed by the drone.
-    * @param pCheck If true, the environmental constraints such as
-    * walls and drones proximity won't be taken into account.
-    * @param possibilities Fixed length bool array that states 
-    * if a given cardinal direction is a valid choice (1) or not (0).
-    * The directions are  given be array indexes such that FRONT = 0,
-    * LEFT = 1, BACK = 2 and RIGHT = 3.
-    * @return The cardinal direction index as an integer.
-   ***/
-   CfDir GetBestDirection(const CVector3& destination, bool pCheck, bool possibilities[4]);
-   
-   /***
-    * This function determines the opposite direction to the one given.
-    * @param direction The direction of which we want to know the opposite of.
-    * @return The opposite direction.
-   ***/
-   CfDir InvDirection(CfDir direction);
-
-   /***
-    * This function gives the number of directions the drone can not go to.
-    * @param possibilities Fixed length bool array that states 
-    * if a given cardinal direction is a valid choice (1) or not (0).
-    * The directions are  given be array indexes such that FRONT = 0,
-    * LEFT = 1, BACK = 2 and RIGHT = 3.
-    ***/
-   int CountObstructions(bool possibilities [4]);
-
-   /**
-    * This function checks the distance a drone has travelled in a fixed amount
-    * of time. If the drone did not achieve a minimal distance delta, the corresponding
-    * status value is modified. This function is used to check if a drone is stuck or 
-    * unable to move for a long period of time.
-    **/
-   void VerifyMobility();
-
-
-   void AddWayPoint();
-
    /*** This function makes the drone moves forward
     * @param velocity Speed at which the drone moves.
    ***/
    void MoveForward(float velocity);
 
-   /*** This function makes the drone moves to the left
-    * @param velocity Speed at which the drone moves.
-   ***/
-   void MoveLeft(float velocity);
-
-   /*** 
-    * This function makes the drone moves backwards
-    * @param velocity Speed at which the drone moves. 
-   ***/
-   void MoveBack(float velocity);
-
-   /*** 
-    * This function makes the drone moves to the right
-    * @param velocity Speed at which the drone moves. 
-   ***/
-   void MoveRight(float velocity);
-
-   /***
-    * This function allows the drone to move in the 
-    * desired direction at a given velocity.
-    * @param direction gives the direction of movement 
-    * @param velocity gives the velocity at which the
-    * drone will go in the given direction 
-   ***/
-   void Move(CfDir direction, float velocity = 0.5);
-   
    /*** 
     * This function makes the drone rotate
     * @param angle Angle at which the drone rotates. 
@@ -286,14 +185,9 @@ private:
 
    /*Current and previous state of the drone*/
    CfState m_cState;
-   CfState m_pState;
 
    /*Current state of the battery*/
    CCI_BatterySensor::SReading sBatRead;
-
-   /*Current and previous mvmt of the drone*/
-   CfDir m_cDir;
-   CfDir m_pDir;
    
    CRadians m_desiredAngle;
 
@@ -312,19 +206,6 @@ private:
    /* Current step */
    uint m_uiCurrentStep;
 
-   /*Steps relative to the current state*/
-   uint m_uiMobilityStep;
-
-   uint m_uiWayPointsDelay;
-
-   /*Previous position before mobility check*/
-   CVector3 m_pPos;
-
-   
-   CVector3 m_wPos;
-
-   /*Mobility status*/
-   bool isMobile;
 
    /*Robot exploration direction (left / right wall follower)*/
    CfExplorationDir m_CfExplorationDir;
@@ -332,8 +213,6 @@ private:
 
    Real previousDist;
    CVector3 previousPos;
-   std::vector<CVector3> referencePoints;
-   CVector3 firstWall;
    bool isReturning; 
 
 };
