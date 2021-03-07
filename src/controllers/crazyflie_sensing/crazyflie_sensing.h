@@ -32,6 +32,7 @@
 #include <argos3/core/utility/math/rng.h>
 #include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
+#include <vector>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -75,6 +76,27 @@ public:
       BACK,
       RIGHT, 
       NONE
+   };
+
+   /**
+    * Enum that represents inner states of explorations.
+    * 
+    * FORWARD = 0
+    * WALL_END =  1
+    * ROTATE =  2
+    * DEBOUNCE = 3
+   **/
+   enum CfExplorationState {
+      FORWARD,
+      WALL_END,
+      ROTATE,
+      DEBOUNCE,
+      AVOID_WALL
+   };
+
+   enum CfExplorationDir {
+      LEFT_WALL,
+      RIGHT_WALL
    };
 
    /* Gives the distance at which drones returns -2 as mesured distance */
@@ -181,13 +203,15 @@ public:
     **/
    void VerifyMobility();
 
+
+   void AddWayPoint();
+
    /*** This function makes the drone moves forward
     * @param velocity Speed at which the drone moves.
    ***/
    void MoveForward(float velocity);
 
-   /*** 
-    * This function makes the drone moves to the left
+   /*** This function makes the drone moves to the left
     * @param velocity Speed at which the drone moves.
    ***/
    void MoveLeft(float velocity);
@@ -212,17 +236,12 @@ public:
     * drone will go in the given direction 
    ***/
    void Move(CfDir direction, float velocity = 0.5);
-
+   
    /*** 
-    * This function makes the drone rotate to the 
-    * desired angle relative to current orientation
-    * @param angle Angle at which the drone will be
-    * rotated. A value of PI/2 rotates 90 degrees to 
-    * the left. A value of -PI/2 rotates 90 degrees
-    * to the right. A small delay needs to be respected
-    * for the drone to be in the right orientation
+    * This function makes the drone rotate
+    * @param angle Angle at which the drone rotates. 
    ***/
-   void RotateToward(CRadians angle);
+   void Rotate(CRadians angle);
 
    /*
     * This function resets the controller to its state right after the
@@ -275,6 +294,8 @@ private:
    /*Current and previous mvmt of the drone*/
    CfDir m_cDir;
    CfDir m_pDir;
+   
+   CRadians m_desiredAngle;
 
    /*Current drone to object distance in the front direction*/
    Real frontDist;
@@ -294,11 +315,27 @@ private:
    /*Steps relative to the current state*/
    uint m_uiMobilityStep;
 
+   uint m_uiWayPointsDelay;
+
    /*Previous position before mobility check*/
    CVector3 m_pPos;
 
+   
+   CVector3 m_wPos;
+
    /*Mobility status*/
    bool isMobile;
+
+   /*Robot exploration direction (left / right wall follower)*/
+   CfExplorationDir m_CfExplorationDir;
+   CfExplorationState m_CdExplorationState;
+
+   Real previousDist;
+   CVector3 previousPos;
+   std::vector<CVector3> referencePoints;
+   CVector3 firstWall;
+   bool isReturning; 
+
 };
 
 #endif
