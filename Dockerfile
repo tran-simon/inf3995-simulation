@@ -67,6 +67,12 @@ ARG UPDATE_CODE=unknown
 
 COPY ./src ./simulation
 
+ENV PORT=4000
+
+EXPOSE 80
+EXPOSE 4000
+
+
 
 #WORKDIR /root
 
@@ -86,3 +92,4 @@ WORKDIR ./simulation
 RUN mkdir build && cd build &&\
     cmake -DCMAKE_BUILD_TYPE=Debug .. &&\
     make -j $(nproc)
+CMD ["argos3", "-c", "./experiments/crazyflie_sensing.argos"]
