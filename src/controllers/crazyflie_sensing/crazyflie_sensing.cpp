@@ -273,8 +273,11 @@ void CCrazyflieSensing::Explore() {
 
       CRadians c_z_angle, c_y_angle, c_x_angle;
       m_pcPos->GetReading().Orientation.ToEulerAngles(c_z_angle, c_y_angle, c_x_angle);
+
+      // TODO: remove
       CVector3 cpos = m_pcPos->GetReading().Position;
       
+      // TODO: remove
       if (isReturning) {
          Real distToBase = Distance(cpos, m_cBasePos);
          if(distToBase < 0.5) {
@@ -283,49 +286,9 @@ void CCrazyflieSensing::Explore() {
       }
 
       switch(m_CdExplorationState) {
-         case CfExplorationState::FORWARD: {
-            // If the wall that the drone was following ended
-            Real explorationDist = (m_CfExplorationDir == LEFT_WALL)? leftDist : rightDist;
-            if((explorationDist == -2 || explorationDist > 1.5 * previousDist) && previousDist != -2) {
-               m_CdExplorationState = WALL_END;
-               break;
-            }
-
-            // If the drone is too close from a wall
-            if(explorationDist < 30 && explorationDist != -2) {
-               m_CdExplorationState = CfExplorationState::AVOID_WALL;
-            }
-
-            // If there is a wall in front of the drone
-            if(frontDist < 50 && frontDist != -2) { 
-               velocity =0;
-               MoveForward(); // Stop any ongoing mvmt
-               m_CdExplorationState = ROTATE;
-               m_desiredAngle = (m_CfExplorationDir == LEFT_WALL)? -1 * CRadians::PI_OVER_TWO : CRadians::PI_OVER_TWO;
-               m_desiredAngle += c_z_angle;
-               break;
-            }
-            // Move the drone forward
-            velocity = ((frontDist < 100 && frontDist != -2) ? (frontDist - 50.0) / 50.0 : 1.0) * 0.4;
-            MoveForward();  
-            break;
-         }
-         case CfExplorationState::WALL_END: {
-            velocity = 0.1;
-            MoveForward(); // Stop any ongoing mvmt
-            m_CdExplorationState = ROTATE;
-            m_desiredAngle = (m_CfExplorationDir == LEFT_WALL)? CRadians::PI_OVER_TWO : -1 * CRadians::PI_OVER_TWO;
-            m_desiredAngle += c_z_angle;
-            break;
-         }
-         case CfExplorationState::ROTATE: {
-            if(Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
-               m_CdExplorationState = DEBOUNCE;
-               break;
-            } 
-            Rotate(m_desiredAngle);
-            break;
-         }
+         case CfExplorationState::FORWARD: Explore_Forward(c_z_angle); break;
+         case CfExplorationState::WALL_END: Explore_WallEnd(c_z_angle); break;
+         case CfExplorationState::ROTATE: Explore_Rotate(c_z_angle); break;
          case CfExplorationState::DEBOUNCE: {
             if(Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
                m_CdExplorationState = FORWARD;
@@ -334,24 +297,7 @@ void CCrazyflieSensing::Explore() {
             }
             break;
          }
-         case CfExplorationState::AVOID_WALL:
-         {
-            Real explorationDist = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? leftDist : rightDist;
-            if(explorationDist > 40) {
-               m_CdExplorationState = CfExplorationState::FORWARD;
-               break;
-            } else if (explorationDist == -2) {
-               m_CdExplorationState = CfExplorationState::WALL_END;
-               break;
-            }
-
-            if(m_CfExplorationDir == CfExplorationDir::LEFT_WALL) {
-               m_pcPropellers->SetRelativePosition(CVector3(-0.1, 0, 0));
-            } else {
-               m_pcPropellers->SetRelativePosition(CVector3(0.1, 0, 0));
-            }
-            break;
-         }
+         case CfExplorationState::AVOID_WALL: Explore_AvoidWall(); break;
       }
       previousDist = (m_CfExplorationDir == LEFT_WALL)? leftDist : rightDist;
       previousPos = m_pcPos->GetReading().Position;
@@ -396,16 +342,91 @@ void CCrazyflieSensing::Land() {
 } 
 
 /****************************************/
+/*       Explore States functions       */
+/****************************************/
+
+void CCrazyflieSensing::Explore_Forward(CRadians c_z_angle) {
+   // If the wall that the drone was following ended
+   Real explorationDist = (m_CfExplorationDir == LEFT_WALL)? leftDist : rightDist;
+   if((explorationDist == -2 || explorationDist > 1.5 * previousDist) && previousDist != -2) {
+      m_CdExplorationState = WALL_END;
+      return;
+   }
+
+   // If the drone is too close from a wall
+   if(explorationDist < 30 && explorationDist != -2) {
+      m_CdExplorationState = CfExplorationState::AVOID_WALL;
+   }
+
+   // If there is a wall in front of the drone
+   if(frontDist < 50 && frontDist != -2) { 
+      velocity =0;
+      MoveForward(c_z_angle); // Stop any ongoing mvmt
+      m_CdExplorationState = ROTATE;
+      m_desiredAngle = (m_CfExplorationDir == LEFT_WALL)? -1 * CRadians::PI_OVER_TWO : CRadians::PI_OVER_TWO;
+      m_desiredAngle += c_z_angle;
+      return;
+   }
+   // Move the drone forward
+   velocity = ((frontDist < 100 && frontDist != -2) ? (frontDist - 50.0) / 50.0 : 1.0) * 0.4;
+   MoveForward(c_z_angle);
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::Explore_WallEnd(CRadians c_z_angle) {
+   velocity = 0.1;
+   MoveForward(c_z_angle);
+   m_CdExplorationState = ROTATE;
+   m_desiredAngle = (m_CfExplorationDir == LEFT_WALL)? CRadians::PI_OVER_TWO : -1 * CRadians::PI_OVER_TWO;
+   m_desiredAngle += c_z_angle;
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::Explore_Rotate(CRadians c_z_angle) {
+   if(Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
+      m_CdExplorationState = DEBOUNCE;
+      return;
+   } 
+   Rotate(m_desiredAngle);
+}
+
+/****************************************/
+/****************************************/
+
+void CCrazyflieSensing::Explore_AvoidWall() {
+   Real explorationDist = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL)? leftDist : rightDist;
+   if(explorationDist > 40) {
+      m_CdExplorationState = CfExplorationState::FORWARD;
+      return;
+   } else if (explorationDist == -2) {
+      m_CdExplorationState = CfExplorationState::WALL_END;
+      return;
+   }
+
+   if(m_CfExplorationDir == CfExplorationDir::LEFT_WALL) {
+      m_pcPropellers->SetRelativePosition(CVector3(-0.1, 0, 0));
+   } else {
+      m_pcPropellers->SetRelativePosition(CVector3(0.1, 0, 0));
+   }
+}
+
+
+/****************************************/
 /*           Movements functions        */
 /****************************************/
 
-void CCrazyflieSensing::MoveForward() {
+void CCrazyflieSensing::MoveForward(CRadians c_z_angle) {
    CCI_PositioningSensor::SReading cpos = m_pcPos->GetReading();
-   CRadians cZAngle, cYAngle, cXAngle;
-   cpos.Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
-   CVector3 desiredPos = cpos.Position + CVector3(velocity * Sin(cZAngle), -velocity*Cos(cZAngle), 0);
+   CVector3 desiredPos = cpos.Position + CVector3(velocity * Sin(c_z_angle), -velocity*Cos(c_z_angle), 0);
    m_pcPropellers->SetAbsolutePosition(desiredPos);
 }
+
+/****************************************/
+/****************************************/
 
 void CCrazyflieSensing::Rotate(CRadians angle) {
    m_pcPropellers->SetAbsoluteYaw(angle);

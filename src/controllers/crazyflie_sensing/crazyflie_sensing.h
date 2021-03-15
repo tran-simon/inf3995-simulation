@@ -128,31 +128,40 @@ public:
     */
    virtual void ControlStep();
 
+   /****************************************/
+   /*       Mission States functions       */
+   /****************************************/
+   
+   void TakeOff();
+   void Explore();
+   void GoToBase();
+   void Land();
+   
+   
    /*
     * This function lifts the drone from the ground
-    */
-   void TakeOff();
 
-   /*
-    * This function makes the drone go on an adventure. Will he survive
+    This function makes the drone go on an adventure. Will he survive
     * the long and dangerous journey?
-    */
-   void Explore();
 
-   /*
-    * This function makes the drone go back to its take off position
-    */
-   void GoToBase();
+    This function makes the drone go back to its take off position
 
-   /*
-    * This function returns the drone to the ground
-    */
-   void Land();
+    This function returns the drone to the ground
+    */   
 
-   /*** This function makes the drone moves forward
-    * 
+   /****************************************/
+   /*       Explore States functions       */
+   /****************************************/
+   void Explore_Forward(CRadians c_z_angle);
+   void Explore_WallEnd(CRadians c_z_angle);
+   void Explore_Rotate(CRadians c_z_angle);
+   void Explore_AvoidWall();
+
+   /*** 
+    * This function makes the drone moves forward
+    * @param c_z_angle Angle at which the drone is. 
    ***/
-   void MoveForward();
+   void MoveForward(CRadians c_z_angle);
 
    /*** 
     * This function makes the drone rotate
