@@ -32,6 +32,7 @@
 #include <argos3/core/utility/math/rng.h>
 #include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
+#include "explore_map.c"
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -241,6 +242,8 @@ private:
    Real previousDist;
    CVector3 previousPos;
    bool isReturning; 
+
+   ExploreMap map;
 
 };
 

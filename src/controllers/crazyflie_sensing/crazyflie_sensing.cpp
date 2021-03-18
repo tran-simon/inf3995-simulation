@@ -15,7 +15,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #define PORT 80
-static bool waitingForStart = true;
+static bool waitingForStart = false;
 static int fd = 0;
 static int firstTime = 0; 
 static float velocity = 1;
@@ -59,6 +59,8 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
       THROW_ARGOSEXCEPTION_NESTED("Error initializing the crazyflie sensing controller for robot \"" << GetId() << "\"", ex);
    }
    
+   
+
    /* Create a random number generator. We use the 'argos' category so
       that creation, reset, seeding and cleanup are managed by ARGoS. */
    m_pcRNG = CRandom::CreateRNG("argos");
@@ -70,6 +72,10 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_uiCurrentStep = 0;
    isReturning = false;
    Reset();
+
+   /* Initialise the map */
+   ExploreMapNew(&map);
+   map.Construct(&map, (int) (previousPos.GetX() + 5), (int) (previousPos.GetY() + 5), 10);
 }
 
 /****************************************/
@@ -167,7 +173,7 @@ void CCrazyflieSensing::SendCommand(int fd, char* message) {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   char command;
+   /*char command;
    if(firstTime == 0){
       fd = ConnectToSocket();
       std::string id = "4";
@@ -192,7 +198,7 @@ void CCrazyflieSensing::ControlStep() {
    strcpy(velocityBuffer, std::to_string(velocity).c_str());
    CreateCommand(fd, stateBuffer, STATE);
    CreateCommand(fd, batteryBuffer, BATTERY);
-   CreateCommand(fd, velocityBuffer, VELOCITY);
+   CreateCommand(fd, velocityBuffer, VELOCITY);*/
 
    try {
       ++m_uiCurrentStep;
@@ -206,9 +212,9 @@ void CCrazyflieSensing::ControlStep() {
 
       // Check if drone are too close
       //CheckDronePosition();
-      if (ReadCommand(fd) == 'l' && !isReturning) { 
+      /*if (ReadCommand(fd) == 'l' && !isReturning) { 
          GoToBase();
-      }
+      }*/
 
       if(sDistRead.size() == 4) {
          /*Updates of the distance sensor*/
@@ -390,8 +396,9 @@ void CCrazyflieSensing::Explore_Rotate(CRadians c_z_angle) {
    if(Abs(c_z_angle - m_desiredAngle).UnsignedNormalize() < CRadians(0.01)) {
       m_CdExplorationState = DEBOUNCE;
       return;
-   } 
-   Rotate(m_desiredAngle);
+   }
+   CRadians angle = CRadians(NormalizedDifference(m_desiredAngle, c_z_angle) / 2 + c_z_angle); 
+   Rotate(angle);
 }
 
 /****************************************/
