@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #define PORT 80
 static bool waitingForStart = true;
-static int fd;
+static int fd[] = {-1,-1,-1,-1};
 static int temp;
 static int firstTime = 0; 
 static float velocity = 1;
@@ -78,10 +78,13 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 // https://www.geeksforgeeks.org/socket-programming-cc/
 void CCrazyflieSensing::ConnectToSocket() {
-   int sock;
+   int sock, valread;
    struct sockaddr_in servaddr;
    int addrlen = sizeof(servaddr);
    int opt = 1;
+   char mess[5];
+   char buffer[1024] = {0}; 
+   int port = PORT + stoi(GetId().substr(6));
 
    if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
       LOG << "socket creation failed.." << std::endl;
@@ -96,7 +99,7 @@ void CCrazyflieSensing::ConnectToSocket() {
 
    servaddr.sin_family = AF_INET;
    // servaddr.sin_addr.s_addr = INADDR_ANY;
-   servaddr.sin_port = htons(PORT);
+   servaddr.sin_port = htons(port);
 
    if(inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr)<=0)  
    { 
@@ -108,8 +111,15 @@ void CCrazyflieSensing::ConnectToSocket() {
    { 
         LOG << "Connection Failed" << std::endl; 
         return; 
-   } 
+   }
+   sprintf(mess, "%d", port);
+   send(sock, mess, strlen(mess), 0);
    LOG << "Hello message sent" << std::endl; 
+   valread = read(sock, buffer, 1024);
+
+   if(valread > 0){
+      fd[stoi(GetId().substr(6))] = 0;
+   }
    LOG << sock << std::endl; 
    temp = sock; 
 
@@ -186,7 +196,7 @@ int CCrazyflieSensing::SendCommand(int fd, char* message) {
 
 void CCrazyflieSensing::ControlStep() {
    char command;
-   while (fd == 0) {
+   while (fd[stoi(GetId().substr(6))] == -1) {
       ConnectToSocket();
    }
 
@@ -212,9 +222,9 @@ void CCrazyflieSensing::ControlStep() {
    strcpy(batteryBuffer, std::to_string(sBatRead.AvailableCharge).c_str());
    char velocityBuffer[1024] = {0};
    strcpy(velocityBuffer, std::to_string(velocity).c_str());
-   CreateCommand(fd, stateBuffer, STATE);
-   CreateCommand(fd, batteryBuffer, BATTERY);
-   CreateCommand(fd, velocityBuffer, VELOCITY);
+   CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
+   CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
+   CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
 
    try {
       ++m_uiCurrentStep;
@@ -226,7 +236,7 @@ void CCrazyflieSensing::ControlStep() {
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
       auto iterDistRead = sDistRead.begin();
 
-      char currentCommand = ReadCommand(fd);
+      char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);
       LOG << currentCommand << std::endl;
       // Check if drone are too close
       //CheckDronePosition();
