@@ -167,7 +167,7 @@ void CCrazyflieSensing::CreateCommand(int sock, char* message, int value) {
 
 int CCrazyflieSensing::SendCommand(int sock, char* message) {
    LOG << "MESSAGE : " << sock << " : " << message << std::endl;
-   return send(sock, message, sizeof(message), 0);
+   return send(sock, message, std::string(message).size(), 0);
 }
 
 /****************************************/
@@ -220,9 +220,16 @@ void CCrazyflieSensing::ControlStep() {
          leftDist = (iterDistRead++)->second;
          backDist = (iterDistRead++)->second;
          rightDist = (iterDistRead)->second;
+         std::string front = std::to_string(frontDist).c_str();
 
          char pointBuffer[1024] = {0};
          strcpy(pointBuffer, std::to_string(frontDist).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(backDist).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(rightDist).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(leftDist).c_str());
          CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
          CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
          CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
