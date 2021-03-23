@@ -110,7 +110,7 @@ int CCrazyflieSensing::ConnectToSocket() {
    //sprintf(mess, "%d", sock);
    //send(sock, mess, strlen(mess), 0);
    //LOG << "Hello message sent" << std::endl; 
-   valread = read(sock, buffer, 1024);
+   valread = recv(sock, buffer, 1024, MSG_PEEK);
    
    if(valread > 0) {
       return sock;
@@ -120,13 +120,13 @@ int CCrazyflieSensing::ConnectToSocket() {
    }
 }
 
-char CCrazyflieSensing::ReadCommand(int fd) {
+char CCrazyflieSensing::ReadCommand(int sock) {
    char buffer[1024] = {0};
    int valRead = 0;
    int index = -1;
 
-   valRead = recv(fd, buffer, sizeof(buffer), MSG_PEEK);
-   LOG << fd << "MESSAGE RECEIVED : " << valRead << std::endl;
+   valRead = recv(sock, buffer, sizeof(buffer), MSG_PEEK);
+   LOG << sock << "MESSAGE RECEIVED : " << buffer << std::endl;
 
    for (int i = 0; i < sizeof(buffer); i++){
       if (buffer[i] != '\0') {
@@ -144,7 +144,7 @@ char CCrazyflieSensing::ReadCommand(int fd) {
 }
 
 
-void CCrazyflieSensing::CreateCommand(int fd, char* message, int value) {
+void CCrazyflieSensing::CreateCommand(int sock, char* message, int value) {
    char markedBuffer[1024] = {0};
    switch (value) {
       case STATE:
@@ -156,14 +156,18 @@ void CCrazyflieSensing::CreateCommand(int fd, char* message, int value) {
       case VELOCITY:
          markedBuffer[0] = 'v';
          break;
+      case POINT:
+         markedBuffer[0] = 'p';
+         break;
       
    }
    strcat(markedBuffer, message);
-   SendCommand(fd, markedBuffer);
+   SendCommand(sock, markedBuffer);
 }
 
-int CCrazyflieSensing::SendCommand(int fd, char* message) {
-   return send(fd, message, sizeof(message), 0);
+int CCrazyflieSensing::SendCommand(int sock, char* message) {
+   LOG << "MESSAGE : " << sock << " : " << message << std::endl;
+   return send(sock, message, sizeof(message), 0);
 }
 
 /****************************************/
@@ -176,19 +180,17 @@ void CCrazyflieSensing::ControlStep() {
       fd[stoi(GetId().substr(6))] = ConnectToSocket();
    }
    LOG << fd[0] << " " << fd[1] << " " << fd[2] << " " << fd[3] << std::endl;
-   if(fd[0] > 0 && fd[1] > 0 && fd[2] > 0 && fd[3] > 0 && m_cState == STATE_START) {
-      TakeOff();
-   }
-   /*char stateBuffer[1024] = {0};
+   
+   char stateBuffer[1024] = {0};
    stateBuffer[0] = '0' + m_cState;
    char batteryBuffer[1024] = {0};
    strcpy(batteryBuffer, std::to_string(sBatRead.AvailableCharge).c_str());
    char velocityBuffer[1024] = {0};
    strcpy(velocityBuffer, std::to_string(velocity).c_str());
 
-   CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
-   CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
-   CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);*/
+   // CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
+   // CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
+   // CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
 
    try {
       ++m_uiCurrentStep;
@@ -200,17 +202,17 @@ void CCrazyflieSensing::ControlStep() {
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
       auto iterDistRead = sDistRead.begin();
 
-      //char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);
-      //LOG << currentCommand << std::endl;
+      char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);
+      LOG << currentCommand << std::endl;
       // Check if drone are too close
       // CheckDronePosition();
 
-      //if (currentCommand == 's') {
-         //m_cState = STATE_TAKE_OFF;
-      //}
-      //else if (currentCommand == 'l' && !isReturning) { 
-         //m_cState = STATE_GO_TO_BASE;
-      //}
+      if (currentCommand == 's') {
+         TakeOff();
+      }
+      else if (currentCommand == 'l' && !isReturning) { 
+         GoToBase();
+      }
 
       if(sDistRead.size() == 4) {
          /*Updates of the distance sensor*/
@@ -218,6 +220,13 @@ void CCrazyflieSensing::ControlStep() {
          leftDist = (iterDistRead++)->second;
          backDist = (iterDistRead++)->second;
          rightDist = (iterDistRead)->second;
+
+         char pointBuffer[1024] = {0};
+         strcpy(pointBuffer, std::to_string(frontDist).c_str());
+         CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
+         CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
+         CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
+         CreateCommand(fd[stoi(GetId().substr(6))], pointBuffer, POINT);
 
          LOG << "Current State: " << m_cState << std::endl;
          /*States management*/

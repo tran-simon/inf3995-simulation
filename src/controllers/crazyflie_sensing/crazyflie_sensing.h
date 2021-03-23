@@ -63,7 +63,8 @@ public:
    enum CfValue {
       STATE,
       BATTERY,
-      VELOCITY
+      VELOCITY,
+      POINT
    };
 
    /**
