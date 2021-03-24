@@ -24,99 +24,111 @@
   <controllers>
 
     <crazyflie_sensing_controller id="ssc"
-                                 library="build/controllers/crazyflie_sensing/libcrazyflie_sensing">
+                    library="build/controllers/crazyflie_sensing/libcrazyflie_sensing">
       <actuators>
-        <range_and_bearing  implementation="default" />
-        <quadrotor_position implementation="default" />
+        <range_and_bearing  implementation="default"/>
+        <quadrotor_position implementation="default"/>
       </actuators>
       <sensors>
-        <range_and_bearing      implementation="medium" medium="rab" show_rays="false" />
-        <crazyflie_distance_scanner implementation="rot_z_only"  show_rays="true" />
-        <positioning            implementation="default"/>
+        <range_and_bearing implementation="medium" medium="rab" show_rays="false"/>
+        <crazyflie_distance_scanner implementation="rot_z_only" show_rays="true"/>
+        <positioning implementation="default"/>
         <battery implementation="default"/>
       </sensors>
-      <params>
-      </params>
+      <params/>
     </crazyflie_sensing_controller>
 
   </controllers>
 
-
-
   <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
+  <!--
+                       RIGHT    
+           __ __ __ __ __ __ __ __ __ __  
+          |                             |
+          |  (-,-)       |       (-,+)  |
+          |              |              |  
+          |              |              |
+  FRONT   |      +-+-+-(0,0)-+-+-> +y   |   BACK
+          |              |              |
+          |              |              |        
+          |              V              |       
+          |  (+,-)       +x      (+,+)  |
+          |__ __ __ __ __ __ __ __ __ __|                                               
+                            
+                        LEFT
+                         
+                         V
+                        Cam
+  -->
+
   <arena size="10, 10, 2" center="0,0,0.5" positional_grid_size="5, 5, 1">
+
+    <!--Arena walls -->
     <box id="wall_north" size="10,0.1,1.5" movable="false">
-      <body position="0,5,0" orientation="0,0,0" />
+      <body position="0,5,0" orientation="0,0,0"/>
     </box>
     <box id="wall_south" size="10,0.1,1.5" movable="false">
-      <body position="0,-5,0" orientation="0,0,0" />
+      <body position="0,-5,0" orientation="0,0,0"/>
     </box>
     <box id="wall_east" size="0.1,10,1.5" movable="false">
-      <body position="5,0,0" orientation="0,0,0" />
+      <body position="5,0,0" orientation="0,0,0"/>
     </box>
     <box id="wall_west" size="0.1,10,1.5" movable="false">
-      <body position="-5,0,0" orientation="0,0,0" />
-    </box>  
+      <body position="-5,0,0" orientation="0,0,0"/>
+    </box> 
 
-    <!-- Hallways -->
-    <box id="hallway_1" size="0.1,9,1.5" movable="false">
-      <body position="1,0.5,0" orientation="0,0,0" />
-    </box>
-
-    <box id="hallway_2" size="0.1,9,1.5" movable="false">
-      <body position="-1,-0.5,0" orientation="0,0,0" />
-    </box>
-
-    <!-- Upper walls -->
+    <!--Front & Right - Boxes -->
     <distribute>
-      <position method="uniform" min="-2.5,-3.5,0.01" max="-2.5,0,0.01" />
-      <orientation method="constant" values="0,0,0" />
-      <entity quantity="1" max_trials="100">
-        <box id="upper_wall_1" size="3,0.1,1.5" movable="false" />
+      <position method="uniform" min="-4.5,-4.5,0.01" max="-0.5,-0.5,0.01"/>
+      <orientation method="gaussian" mean="0,0,0" std_dev="180,0,0"/>
+      <entity quantity="2" max_trials="300" pos_delta="1.5,1.5,0">
+        <box id="frontRightBoxes_" size="1,1,1.5" movable="false"/>
       </entity>
     </distribute>
 
+    <!--Front & Left - Boxes -->
     <distribute>
-      <position method="uniform" min="-3.5,0,0.01" max="-3.5,3.5,0.01" />
-      <orientation method="constant" values="0,0,0" />
-      <entity quantity="1" max_trials="100">
-        <box id="upper_wall_2" size="3,0.1,1.5" movable="false" />
+      <position method="uniform" min="0.5,-4.5,0.01" max="4.5,-0.5,0.01"/>
+      <orientation method="gaussian" mean="0,0,0" std_dev="180,0,0"/>
+      <entity quantity="2" max_trials="300" pos_delta="1.5,1.5,0">
+        <box id="frontLeftBoxes_" size="1,1,1.5" movable="false"/>
       </entity>
     </distribute>
 
-    <!-- Lower walls -->
+    <!--Back & Right - Boxes -->
     <distribute>
-      <position method="uniform" min="2.5,0,0.01" max="2.5,3.5,0.01" />
-      <orientation method="constant" values="0,0,0" />
-      <entity quantity="1" max_trials="100">
-        <box id="lower_wall_1" size="3,0.1,1.5" movable="false" />
+      <position method="uniform" min="-4.5,0.5,0.01" max="-0.5,4.5,0.01"/>
+      <orientation method="gaussian" mean="0,0,0" std_dev="180,0,0"/>
+      <entity quantity="2" max_trials="300" pos_delta="1.5,1.5,0">
+        <box id="backRightBoxes_" size="1,1,1.5" movable="false"/>
       </entity>
     </distribute>
 
+    <!--Back & Left - Boxes -->
     <distribute>
-      <position method="uniform" min="3.5,-3.5,0.01" max="3.5,0,0.01" />
-      <orientation method="constant" values="0,0,0" />
-      <entity quantity="1" max_trials="100">
-        <box id="lower_wall_2" size="3,0.1,1.5" movable="false" />
+      <position method="uniform" min="0.5,0.5,0.01" max="4.5,4.5,0.01"/>
+      <orientation method="gaussian" mean="0,0,0" std_dev="180,0,0"/>
+      <entity quantity="2" max_trials="300" pos_delta="1.5,1.5,0">
+        <box id="backLeftBoxes_" size="1,1,1.5" movable="false"/>
       </entity>
     </distribute>
 
+    <!-- Drones distribution -->
     <distribute>
-      <position method="uniform" min="-5,-5,0" max="5,5,0" />
+      <position method="uniform" min="-4.9,-4.9,0" max="4.9,4.9,0" />
       <orientation method="constant" values="0,0,0" />
-      <entity quantity="4" max_trials="100">
+      <entity quantity="4" max_trials="300">
         <crazyflie id="drone_">
           <body position="3,3,0" orientation="0,0,0"/>
           <controller config="ssc" />
-          <battery model="time_motion" delta="1e-3" pos_delta="1e-3"  orient_delta="1e-3"/>
+          <battery model="time_motion" delta="1e-3" pos_delta="1e-3" orient_delta="1e-3"/>
         </crazyflie>
       </entity>
     </distribute>
+    
   </arena> 
-
-
 
   <!-- ******************* -->
   <!-- * Physics engines * -->
