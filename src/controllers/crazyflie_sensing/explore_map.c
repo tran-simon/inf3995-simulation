@@ -8,10 +8,10 @@ extern void ExploreMapNew(ExploreMap *obj) {
 }
 
 /* Class Constructor */
-extern void mConstructor (ExploreMap *obj, int initX, int initY, int arenaSize) {
-    obj->mapResolutionCM = (arenaSize * 100) / 30;
-    obj->currX = initX * (obj->mapResolutionCM / 10);
-    obj->currY = initY * (obj->mapResolutionCM / 10);
+extern void mConstructor (ExploreMap *obj, int initX, int initY) {
+    obj->mapResolutionCM = 20; /* Number of CM per square */
+    obj->currX = (initX * 100) / obj->mapResolutionCM;
+    obj->currY = (initY * 100) / obj->mapResolutionCM;
     for (unsigned int i = 0; i < 30; i++) {
         for (unsigned int j = 0; j < 30; j++) {
             obj->map[i][j] = 0;
@@ -21,8 +21,8 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY, int arenaSize) 
 
 /* Move the drone on the map */
 extern void mMove (ExploreMap *obj, int x, int y) {
-    obj->currX = obj->currX + x;
-    obj->currY = obj->currY + y;
+    obj->currX = obj->currX + ((x * 100) / obj->mapResolutionCM);
+    obj->currY = obj->currY + ((y * 100) / obj->mapResolutionCM);
 }
 
 /* Add the data collected from the sensor */

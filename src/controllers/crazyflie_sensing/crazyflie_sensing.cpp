@@ -75,7 +75,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 
    /* Initialise the map */
    ExploreMapNew(&map);
-   map.Construct(&map, (int) (previousPos.GetX() + 5), (int) (previousPos.GetY() + 5), 10);
+   map.Construct(&map, (int) (previousPos.GetX() + 5), (int) (previousPos.GetY() + 5));
 }
 
 /****************************************/
