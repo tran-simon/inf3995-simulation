@@ -19,8 +19,8 @@ static bool waitingForStart = true;
 static int firstTime = 0; 
 static float velocity = 1;
 static int fd[] = {-1,-1,-1,-1};
-static float posY = 0.0f;
-static float posX = 0.0f;
+static float posX[4];
+static float posY[4];
 
 
 /****************************************/
@@ -157,6 +157,9 @@ void CCrazyflieSensing::CreateCommand(int sock, char* message, int value) {
       case VELOCITY:
          markedBuffer[0] = 'v';
          break;
+      case POSITION:
+         markedBuffer[0] = 'l';
+         break;
       case POINT:
          markedBuffer[0] = 'p';
          break;
@@ -181,12 +184,12 @@ void CCrazyflieSensing::ControlStep() {
       fd[stoi(GetId().substr(6))] = ConnectToSocket();
    }
    LOG << fd[0] << " " << fd[1] << " " << fd[2] << " " << fd[3] << std::endl;
-   
-   if(stoi(GetId().substr(6)) == 0) {
-      posX = m_pcPos->GetReading().Position.GetX();
-      posY = m_pcPos->GetReading().Position.GetY();
-   }
 
+
+   if (!posX[fd[stoi(GetId().substr(6))]])
+      posX[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetX();
+   if (!posY[fd[stoi(GetId().substr(6))]])
+      posY[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetY();
    char stateBuffer[1024] = {0};
    stateBuffer[0] = '0' + m_cState;
    char batteryBuffer[1024] = {0};
@@ -228,23 +231,24 @@ void CCrazyflieSensing::ControlStep() {
          rightDist = (iterDistRead)->second;
          std::string front = std::to_string(frontDist).c_str();
 
-         char pointBuffer[1024] = {0};
-         float frontPoint = frontDist + posX + (m_pcPos->GetReading().Position.GetX() - posX);
-         float backPoint = backDist + posX + (m_pcPos->GetReading().Position.GetX() - posX);
-         float rightPoint = rightDist + posY + (m_pcPos->GetReading().Position.GetY() - posY);
-         float leftPoint = leftDist + posY + (m_pcPos->GetReading().Position.GetY() - posY);
+         char posBuffer[1024] = {0};
+         strcpy(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetX() - posX[fd[stoi(GetId().substr(6))]]).c_str());
+         strcat(posBuffer, ";");
+         strcat(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetY() - posY[fd[stoi(GetId().substr(6))]]).c_str());
 
-         strcpy(pointBuffer, std::to_string(frontPoint).c_str());
+         char pointBuffer[1024] = {0};
+         strcpy(pointBuffer, std::to_string(frontDist).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(backPoint).c_str());
+         strcat(pointBuffer, std::to_string(backDist).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(rightPoint).c_str());
+         strcat(pointBuffer, std::to_string(rightDist).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(leftPoint).c_str());
+         strcat(pointBuffer, std::to_string(leftDist).c_str());
 
          CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
          CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
          CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
+         CreateCommand(fd[stoi(GetId().substr(6))], posBuffer, POSITION);
          CreateCommand(fd[stoi(GetId().substr(6))], pointBuffer, POINT);
 
          LOG << "Current State: " << m_cState << std::endl;

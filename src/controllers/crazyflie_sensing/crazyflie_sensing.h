@@ -64,6 +64,7 @@ public:
       STATE,
       BATTERY,
       VELOCITY,
+      POSITION,
       POINT
    };
 
