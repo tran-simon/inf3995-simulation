@@ -33,6 +33,8 @@
 #include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
 #include "explore_map.c"
+#include <iostream>
+#include <fstream>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -65,27 +67,6 @@ public:
       STATE,
       BATTERY,
       VELOCITY
-   };
-
-   /**
-    * Enum that represents inner states of explorations.
-    * 
-    * FORWARD = 0
-    * WALL_END =  1
-    * ROTATE =  2
-    * DEBOUNCE = 3
-   **/
-   enum CfExplorationState {
-      FORWARD,
-      WALL_END,
-      ROTATE,
-      DEBOUNCE,
-      AVOID_WALL
-   };
-
-   enum CfExplorationDir {
-      LEFT_WALL,
-      RIGHT_WALL
    };
 
    enum CfDir {
@@ -157,14 +138,6 @@ public:
     This function returns the drone to the ground
     */   
 
-   /****************************************/
-   /*       Explore States functions       */
-   /****************************************/
-   void Explore_Forward(CRadians c_z_angle);
-   void Explore_WallEnd(CRadians c_z_angle);
-   void Explore_Rotate(CRadians c_z_angle);
-   void Explore_AvoidWall();
-
    /*** 
     * This function makes the drone moves forward
     * @param c_z_angle Angle at which the drone is. 
@@ -172,22 +145,28 @@ public:
    void MoveForward(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves forward
+    * This function makes the drone moves to the left
     * @param c_z_angle Angle at which the drone is. 
    ***/
    void MoveLeft(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves forward
+    * This function makes the drone moves back
     * @param c_z_angle Angle at which the drone is. 
    ***/
    void MoveBack(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves forward
+    * This function makes the drone moves to the right
     * @param c_z_angle Angle at which the drone is. 
    ***/
    void MoveRight(CRadians c_z_angle, float dist = 0);
+
+   /*** 
+    * This function makes the drone stop moving
+    * by setting the desired pos to the current pos 
+   ***/
+   void StopMvmt();
 
    /*** 
     * This function makes the drone rotate
@@ -210,6 +189,7 @@ public:
     */
    virtual void Destroy() {}
 
+   void printMap();
 private:
 
    /* Pointer to the crazyflie distance sensor */
@@ -267,13 +247,6 @@ private:
    /* Current step */
    uint m_uiCurrentStep;
 
-
-   /*Robot exploration direction (left / right wall follower)*/
-   CfExplorationDir m_CfExplorationDir;
-   CfExplorationState m_CdExplorationState;
-
-   Real previousDist;
-   CVector3 previousPos;
    bool isReturning; 
 
    CfDir m_cDir;

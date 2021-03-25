@@ -9,6 +9,8 @@ typedef enum _MapExplorationDir {
 } MapExplorationDir;
 
 typedef struct _ExploreMap {
+    int initX;
+    int initY;
     int currX;
     int currY;
     uint8_t mapResolutionCM;
