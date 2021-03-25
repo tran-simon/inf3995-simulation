@@ -19,6 +19,8 @@ static bool waitingForStart = true;
 static int firstTime = 0; 
 static float velocity = 1;
 static int fd[] = {-1,-1,-1,-1};
+static float posY = 0.0f;
+static float posX = 0.0f;
 
 
 /****************************************/
@@ -126,7 +128,6 @@ char CCrazyflieSensing::ReadCommand(int sock) {
    int index = -1;
 
    valRead = recv(sock, buffer, sizeof(buffer), MSG_PEEK);
-   LOG << sock << "MESSAGE RECEIVED : " << buffer << std::endl;
 
    for (int i = 0; i < sizeof(buffer); i++){
       if (buffer[i] != '\0') {
@@ -181,6 +182,11 @@ void CCrazyflieSensing::ControlStep() {
    }
    LOG << fd[0] << " " << fd[1] << " " << fd[2] << " " << fd[3] << std::endl;
    
+   if(stoi(GetId().substr(6)) == 0) {
+      posX = m_pcPos->GetReading().Position.GetX();
+      posY = m_pcPos->GetReading().Position.GetY();
+   }
+
    char stateBuffer[1024] = {0};
    stateBuffer[0] = '0' + m_cState;
    char batteryBuffer[1024] = {0};
@@ -223,13 +229,19 @@ void CCrazyflieSensing::ControlStep() {
          std::string front = std::to_string(frontDist).c_str();
 
          char pointBuffer[1024] = {0};
-         strcpy(pointBuffer, std::to_string(frontDist).c_str());
+         float frontPoint = frontDist + posX + (m_pcPos->GetReading().Position.GetX() - posX);
+         float backPoint = backDist + posX + (m_pcPos->GetReading().Position.GetX() - posX);
+         float rightPoint = rightDist + posY + (m_pcPos->GetReading().Position.GetY() - posY);
+         float leftPoint = leftDist + posY + (m_pcPos->GetReading().Position.GetY() - posY);
+
+         strcpy(pointBuffer, std::to_string(frontPoint).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(backDist).c_str());
+         strcat(pointBuffer, std::to_string(backPoint).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(rightDist).c_str());
+         strcat(pointBuffer, std::to_string(rightPoint).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(leftDist).c_str());
+         strcat(pointBuffer, std::to_string(leftPoint).c_str());
+
          CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
          CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
          CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
