@@ -1,6 +1,13 @@
 #ifndef EXPLORE_MAP_H
 #define EXPLORE_MAP_H
 
+typedef enum _MapExplorationDir {
+    X_POS,
+    X_NEG,
+    Y_POS,
+    Y_NEG
+} MapExplorationDir;
+
 typedef struct _ExploreMap {
     int currX;
     int currY;
@@ -9,13 +16,15 @@ typedef struct _ExploreMap {
     /* Member Functions */
     void (*Construct) (struct _ExploreMap *obj, int initX, int initY);
     void (*Move) (struct _ExploreMap *obj, int x, int y);
-    void (*AddData) (struct _ExploreMap *obj, int frontDist, int leftDist, int backDist, int rightDist);
+    int (*AddData) (struct _ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
+    MapExplorationDir (*GetBestDir) (struct _ExploreMap *obj);
 } ExploreMap;
 
 /* Global Member Functions */
 extern void mConstructor (ExploreMap *obj, int initX, int initY);
 extern void mMove (ExploreMap *obj, int x, int y);
-extern void mAddData (ExploreMap *obj, int frontDist, int leftDist, int backDist, int rightDist);
+extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
+extern MapExplorationDir mGetBestDir (ExploreMap *obj);
 
 /* Global Functions */
 extern void ExploreMapNew(ExploreMap *obj);

@@ -88,6 +88,13 @@ public:
       RIGHT_WALL
    };
 
+   enum CfDir {
+      FRONT,
+      LEFT,
+      BACK,
+      RIGHT
+   };
+
    /* Gives the distance at which drones returns -2 as mesured distance */
    static uint const MAX_VIEW_DIST = 200;
 
@@ -162,7 +169,25 @@ public:
     * This function makes the drone moves forward
     * @param c_z_angle Angle at which the drone is. 
    ***/
-   void MoveForward(CRadians c_z_angle);
+   void MoveForward(CRadians c_z_angle, float dist = 0);
+
+   /*** 
+    * This function makes the drone moves forward
+    * @param c_z_angle Angle at which the drone is. 
+   ***/
+   void MoveLeft(CRadians c_z_angle, float dist = 0);
+
+   /*** 
+    * This function makes the drone moves forward
+    * @param c_z_angle Angle at which the drone is. 
+   ***/
+   void MoveBack(CRadians c_z_angle, float dist = 0);
+
+   /*** 
+    * This function makes the drone moves forward
+    * @param c_z_angle Angle at which the drone is. 
+   ***/
+   void MoveRight(CRadians c_z_angle, float dist = 0);
 
    /*** 
     * This function makes the drone rotate
@@ -219,7 +244,15 @@ private:
    
    CRadians m_desiredAngle;
 
-   /*Current drone to object distance in the front direction*/
+   /***
+   *  Current drone to object distance
+   *  m_cDist[0]: front distance
+   *  m_cDist[1]: left distance
+   *  m_cDist[2]: back distance
+   *  m_cDist[3]: right distance
+   ***/
+   Real m_cDist[4];
+   
    Real frontDist;
 
    /*Current drone to object distance in the left direction*/
@@ -243,6 +276,7 @@ private:
    CVector3 previousPos;
    bool isReturning; 
 
+   CfDir m_cDir;
    ExploreMap map;
 
 };
