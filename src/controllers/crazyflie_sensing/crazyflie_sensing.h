@@ -73,7 +73,8 @@ public:
       FRONT,
       LEFT,
       BACK,
-      RIGHT
+      RIGHT,
+      STOP
    };
 
    /* Gives the distance at which drones returns -2 as mesured distance */
@@ -138,6 +139,16 @@ public:
     This function returns the drone to the ground
     */   
 
+   /****************************************/
+   /*           Movements functions        */
+   /****************************************/
+
+   /*** 
+    * This function return the best direction for the drone
+    * @return cfDir:CfDir the best direction to explore
+   ***/
+   enum CfDir GetBestDir();
+
    /*** 
     * This function makes the drone moves forward
     * @param c_z_angle Angle at which the drone is. 
@@ -166,7 +177,7 @@ public:
     * This function makes the drone stop moving
     * by setting the desired pos to the current pos 
    ***/
-   void StopMvmt();
+   CVector3& StopMvmt();
 
    /*** 
     * This function makes the drone rotate
