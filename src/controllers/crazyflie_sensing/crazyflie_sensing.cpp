@@ -93,8 +93,6 @@ int CCrazyflieSensing::ConnectToSocket() {
       return -1;
    }
 
-   LOG << "Socket created succesfully" << std::endl;
-
    servaddr.sin_family = AF_INET;
    servaddr.sin_port = htons(port);
 
@@ -140,7 +138,6 @@ char CCrazyflieSensing::ReadCommand(int sock) {
 
    if (index == -1) return 'f';
 
-   LOG << "MESSAGE RECEIVED : " << buffer[index] << std::endl;
    return buffer[index];
 }
 
@@ -170,7 +167,6 @@ void CCrazyflieSensing::CreateCommand(int sock, char* message, int value) {
 }
 
 int CCrazyflieSensing::SendCommand(int sock, char* message) {
-   LOG << "MESSAGE : " << sock << " : " << message << std::endl;
    return send(sock, message, std::string(message).size(), 0);
 }
 
@@ -183,13 +179,15 @@ void CCrazyflieSensing::ControlStep() {
    while (fd[stoi(GetId().substr(6))] <= 0) {
       fd[stoi(GetId().substr(6))] = ConnectToSocket();
    }
-   LOG << fd[0] << " " << fd[1] << " " << fd[2] << " " << fd[3] << std::endl;
 
 
-   if (!posX[fd[stoi(GetId().substr(6))]])
+   if (!posX[fd[stoi(GetId().substr(6))]] & !posY[fd[stoi(GetId().substr(6))]]) {
       posX[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetX();
-   if (!posY[fd[stoi(GetId().substr(6))]])
       posY[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetY();
+      LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() << " x: " << posX[fd[stoi(GetId().substr(6))]] << " y: " << posY[fd[stoi(GetId().substr(6))]] << std::endl;
+
+   }
+
    char stateBuffer[1024] = {0};
    stateBuffer[0] = '0' + m_cState;
    char batteryBuffer[1024] = {0};
@@ -203,16 +201,13 @@ void CCrazyflieSensing::ControlStep() {
 
    try {
       ++m_uiCurrentStep;
-      LOG << "+====START====+" << std::endl;
       // Look battery level
       sBatRead = m_pcBattery->GetReading();
-      LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
       auto iterDistRead = sDistRead.begin();
 
       char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);
-      LOG << currentCommand << std::endl;
       // Check if drone are too close
       // CheckDronePosition();
 
@@ -251,7 +246,6 @@ void CCrazyflieSensing::ControlStep() {
          CreateCommand(fd[stoi(GetId().substr(6))], posBuffer, POSITION);
          CreateCommand(fd[stoi(GetId().substr(6))], pointBuffer, POINT);
 
-         LOG << "Current State: " << m_cState << std::endl;
          /*States management*/
          switch (m_cState) {
             case STATE_START: break;
@@ -262,7 +256,6 @@ void CCrazyflieSensing::ControlStep() {
             default: break;
          }
       }
-      LOG << "+====END====+" << std::endl;
    } catch(std::exception e) {
       LOGERR << "AN EXCEPTION AS OCCURED IN CONTROLSTEP" << std::endl;
       LOGERR <<"Exception details: " << e.what() << std::endl;
