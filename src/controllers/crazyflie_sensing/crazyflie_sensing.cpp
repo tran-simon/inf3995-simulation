@@ -173,6 +173,11 @@ void CCrazyflieSensing::SendCommand(int fd, char* message) {
    send(fd, message, sizeof(message), 0);
 }
 
+
+uint CCrazyflieSensing::FetchRSSI() {
+   //TODO : This function :)
+}
+
 /****************************************/
 /****************************************/
 
@@ -278,18 +283,9 @@ void CCrazyflieSensing::Explore() {
       CRadians c_z_angle, c_y_angle, c_x_angle;
       m_pcPos->GetReading().Orientation.ToEulerAngles(c_z_angle, c_y_angle, c_x_angle);
 
-      // TODO: remove
-      /*CVector3 cpos = m_pcPos->GetReading().Position;
-      
-      // TODO: remove
-      if (isReturning) {
-         Real distToBase = Distance(cpos, m_cBasePos);
-         if(distToBase < 0.5) {
-            Land();
-         }
-      }*/
       /* Move the drone in the map*/
-      map.Move(&map, (int) (cPos.GetX() + 5), (int) (cPos.GetY() + 5));
+      CVector3 cpos = m_pcPos->GetReading().Position;
+      map.Move(&map, (int) (cpos.GetX() + 5), (int) (cpos.GetY() + 5));
       
       /* Add the sensor value to the map */
       map.AddData(&map,
@@ -351,13 +347,28 @@ void CCrazyflieSensing::Explore() {
 
 void CCrazyflieSensing::GoToBase() {
    try {
-      m_CfExplorationDir = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL) ? CfExplorationDir::RIGHT_WALL : CfExplorationDir::LEFT_WALL;
+      if(m_cState != STATE_GO_TO_BASE) {
+         map.mBase = {0U,0U, 1, 1}; //TODO assign real values
+         map.BuildFlow(&map);
+         m_cState = STATE_GO_TO_BASE;
+      }
+      /*m_CfExplorationDir = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL) ? CfExplorationDir::RIGHT_WALL : CfExplorationDir::LEFT_WALL;
       m_CdExplorationState = CfExplorationState::ROTATE;
 
       CRadians cZAngle, cYAngle, cXAngle;
       m_pcPos->GetReading().Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
       m_desiredAngle = (cZAngle + CRadians::PI).UnsignedNormalize();
-      isReturning = true;
+      isReturning = true;*/
+
+      /***
+       * Return to base 
+       * -> we approximate  base tile position
+       * -> based on current tile, we find the closest explored tile from base we know 
+       * -> from this node we run Wave Propagation algorithm to generate flowmap
+       * -> we then use the flow map to find the closest path to the base
+       ***/
+      
+      
    } catch(std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED ON THE WAY BACK" << std::endl;
       LOGERR <<"Exception details: " << e.what() << std::endl;

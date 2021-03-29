@@ -118,7 +118,8 @@ public:
     */
    virtual void Init(TConfigurationNode& t_node);
 
-   /***This function connects to the socket running
+   /*** 
+    * This function connects to the socket running
     * on the backend in order to communicate when
     * to start and land.
    ***/
@@ -129,7 +130,12 @@ public:
    void CreateCommand(int fd, char* message, int value);
 
    void SendCommand(int fd, char* message);
-
+   /***
+    * This function fetch the RSSI signal strenght and return a approximative distance
+    * between the signal source and the drone.
+    ***/
+   uint FetchRSSI();
+    
    /*
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
@@ -209,6 +215,8 @@ public:
     * completeness.
     */
    virtual void Destroy() {}
+   
+   
 
 private:
 
@@ -278,7 +286,6 @@ private:
 
    CfDir m_cDir;
    ExploreMap map;
-
 };
 
 #endif
