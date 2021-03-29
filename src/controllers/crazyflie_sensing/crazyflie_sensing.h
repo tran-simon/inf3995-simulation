@@ -63,7 +63,9 @@ public:
    enum CfValue {
       STATE,
       BATTERY,
-      VELOCITY
+      VELOCITY,
+      POSITION,
+      POINT
    };
 
    /**
@@ -120,7 +122,7 @@ public:
 
    void CreateCommand(int fd, char* message, int value);
 
-   void SendCommand(int fd, char* message);
+   int SendCommand(int fd, char* message);
 
    /*
     * This function is called once every time step.

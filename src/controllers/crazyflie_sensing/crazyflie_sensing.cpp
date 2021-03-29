@@ -16,9 +16,12 @@
 #include <arpa/inet.h>
 #define PORT 80
 static bool waitingForStart = true;
-static int fd = 0;
 static int firstTime = 0; 
 static float velocity = 1;
+static int fd[] = {-1,-1,-1,-1};
+static float posX[4];
+static float posY[4];
+
 
 /****************************************/
 /****************************************/
@@ -77,53 +80,52 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
 /****************************************/
 // https://www.geeksforgeeks.org/socket-programming-cc/
 int CCrazyflieSensing::ConnectToSocket() {
-   int server_fd, new_socket, valread;
+   int sock, valread;
    struct sockaddr_in servaddr;
    int addrlen = sizeof(servaddr);
    int opt = 1;
+   char mess[5];
+   char buffer[1024] = {0}; 
+   int port = PORT + stoi(GetId().substr(6));
 
-   if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
       LOG << "socket creation failed.." << std::endl;
-      return 1000;
-   }
-
-   LOG << "Socket created succesfully" << std::endl;
-   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-         LOG << "socket failed forceful" << std::endl;
-        return 1000;
+      return -1;
    }
 
    servaddr.sin_family = AF_INET;
-   servaddr.sin_addr.s_addr = INADDR_ANY;
-   servaddr.sin_port = htons(PORT);
+   servaddr.sin_port = htons(port);
 
-   if (bind(server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) <0) {
-      LOG << "Binding error" << std::endl;
-      return 1000;
+   if(inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr)<=0)  
+   { 
+      LOG << "Invalid address/ Address not supported" << std::endl; 
+      return -1; 
+   } 
+   
+   if (connect(sock, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) 
+   { 
+        LOG << "Connection Failed" << std::endl; 
+        return -1; 
    }
-
-   LOG << "Socket binded succesfully" << std::endl;
-   if (listen(server_fd, 2) < 0) {
-      LOG << "Listening error" << std::endl;
-      return 1000;
+   //sprintf(mess, "%d", sock);
+   //send(sock, mess, strlen(mess), 0);
+   //LOG << "Hello message sent" << std::endl; 
+   valread = recv(sock, buffer, 1024, MSG_PEEK);
+   
+   if(valread > 0) {
+      return sock;
    }
-
-   LOG << "Socket listening succesfully" << std::endl;
-   if ((new_socket = accept(server_fd, (struct sockaddr *)&servaddr,(socklen_t*)&addrlen))<0) {
-      LOG << "Accepting error : " << errno << std::endl;
-      return 1000;
+   else {
+      return -1;
    }
-
-   return new_socket;
-
 }
 
-char CCrazyflieSensing::ReadCommand(int fd) {
+char CCrazyflieSensing::ReadCommand(int sock) {
    char buffer[1024] = {0};
    int valRead = 0;
    int index = -1;
 
-   valRead = recv(fd, buffer, sizeof(buffer), MSG_PEEK);
+   valRead = recv(sock, buffer, sizeof(buffer), MSG_PEEK);
 
    for (int i = 0; i < sizeof(buffer); i++){
       if (buffer[i] != '\0') {
@@ -136,12 +138,11 @@ char CCrazyflieSensing::ReadCommand(int fd) {
 
    if (index == -1) return 'f';
 
-   LOG << "MESSAGE RECEIVED : " << buffer[index] << std::endl;
    return buffer[index];
 }
 
 
-void CCrazyflieSensing::CreateCommand(int fd, char* message, int value) {
+void CCrazyflieSensing::CreateCommand(int sock, char* message, int value) {
    char markedBuffer[1024] = {0};
    switch (value) {
       case STATE:
@@ -153,14 +154,20 @@ void CCrazyflieSensing::CreateCommand(int fd, char* message, int value) {
       case VELOCITY:
          markedBuffer[0] = 'v';
          break;
+      case POSITION:
+         markedBuffer[0] = 'l';
+         break;
+      case POINT:
+         markedBuffer[0] = 'p';
+         break;
       
    }
    strcat(markedBuffer, message);
-   SendCommand(fd, markedBuffer);
+   SendCommand(sock, markedBuffer);
 }
 
-void CCrazyflieSensing::SendCommand(int fd, char* message) {
-   send(fd, message, sizeof(message), 0);
+int CCrazyflieSensing::SendCommand(int sock, char* message) {
+   return send(sock, message, std::string(message).size(), 0);
 }
 
 /****************************************/
@@ -168,20 +175,17 @@ void CCrazyflieSensing::SendCommand(int fd, char* message) {
 
 void CCrazyflieSensing::ControlStep() {
    char command;
-   if(firstTime == 0){
-      fd = ConnectToSocket();
-      std::string id = "4";
-      const char *buf = id.c_str();
-      send(fd, buf, strlen(buf), 0);
+
+   while (fd[stoi(GetId().substr(6))] <= 0) {
+      fd[stoi(GetId().substr(6))] = ConnectToSocket();
    }
 
-   while(waitingForStart){
-      if(fd != 1000){
-         command = ReadCommand(fd);
-         if(command == 's'){
-            waitingForStart = false; 
-         }
-      }
+
+   if (!posX[fd[stoi(GetId().substr(6))]] & !posY[fd[stoi(GetId().substr(6))]]) {
+      posX[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetX();
+      posY[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetY();
+      LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() << " x: " << posX[fd[stoi(GetId().substr(6))]] << " y: " << posY[fd[stoi(GetId().substr(6))]] << std::endl;
+
    }
 
    char stateBuffer[1024] = {0};
@@ -190,23 +194,27 @@ void CCrazyflieSensing::ControlStep() {
    strcpy(batteryBuffer, std::to_string(sBatRead.AvailableCharge).c_str());
    char velocityBuffer[1024] = {0};
    strcpy(velocityBuffer, std::to_string(velocity).c_str());
-   CreateCommand(fd, stateBuffer, STATE);
-   CreateCommand(fd, batteryBuffer, BATTERY);
-   CreateCommand(fd, velocityBuffer, VELOCITY);
+
+   // CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
+   // CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
+   // CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
 
    try {
       ++m_uiCurrentStep;
-      LOG << "+====START====+" << std::endl;
       // Look battery level
       sBatRead = m_pcBattery->GetReading();
-      LOG << "Battery level: " << sBatRead.AvailableCharge  << std::endl;
 
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
       auto iterDistRead = sDistRead.begin();
 
+      char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);
       // Check if drone are too close
-      //CheckDronePosition();
-      if (ReadCommand(fd) == 'l' && !isReturning) { 
+      // CheckDronePosition();
+
+      if (currentCommand == 's') {
+         TakeOff();
+      }
+      else if (currentCommand == 'l' && !isReturning) { 
          GoToBase();
       }
 
@@ -216,11 +224,31 @@ void CCrazyflieSensing::ControlStep() {
          leftDist = (iterDistRead++)->second;
          backDist = (iterDistRead++)->second;
          rightDist = (iterDistRead)->second;
+         std::string front = std::to_string(frontDist).c_str();
 
-         LOG << "Current State: " << m_cState << std::endl;
+         char posBuffer[1024] = {0};
+         strcpy(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetX() - posX[fd[stoi(GetId().substr(6))]]).c_str());
+         strcat(posBuffer, ";");
+         strcat(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetY() - posY[fd[stoi(GetId().substr(6))]]).c_str());
+
+         char pointBuffer[1024] = {0};
+         strcpy(pointBuffer, std::to_string(frontDist).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(backDist).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(rightDist).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(leftDist).c_str());
+
+         CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
+         CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
+         CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
+         CreateCommand(fd[stoi(GetId().substr(6))], posBuffer, POSITION);
+         CreateCommand(fd[stoi(GetId().substr(6))], pointBuffer, POINT);
+
          /*States management*/
          switch (m_cState) {
-            case STATE_START: TakeOff();
+            case STATE_START: break;
             case STATE_TAKE_OFF: TakeOff(); break;
             case STATE_EXPLORE: Explore(); break;
             case STATE_GO_TO_BASE: GoToBase(); break;
@@ -228,7 +256,6 @@ void CCrazyflieSensing::ControlStep() {
             default: break;
          }
       }
-      LOG << "+====END====+" << std::endl;
    } catch(std::exception e) {
       LOGERR << "AN EXCEPTION AS OCCURED IN CONTROLSTEP" << std::endl;
       LOGERR <<"Exception details: " << e.what() << std::endl;
