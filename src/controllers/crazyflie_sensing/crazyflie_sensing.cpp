@@ -367,7 +367,7 @@ void CCrazyflieSensing::GoToBase() {
        * -> from this node we run Wave Propagation algorithm to generate flowmap
        * -> we then use the flow map to find the closest path to the base
       ***/
-     
+      
       
    } catch(std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED ON THE WAY BACK" << std::endl;

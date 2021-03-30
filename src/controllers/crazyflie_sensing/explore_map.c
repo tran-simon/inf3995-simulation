@@ -34,7 +34,7 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     for (unsigned int i = 0; i < MAP_SIZE; i++) {
         for (unsigned int j = 0; j < MAP_SIZE; j++) {
             obj->map[i][j] = 0;
-            obj->distMap[i][j] = -1;
+            obj->distMap[i][j] = -1; //Must be < 0
         }
     }
 }
@@ -133,5 +133,31 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 }
 
 extern MapExplorationDir mNextNode(ExploreMap *obj) {
-    return X_POS;
+    int x = obj->currX;
+    int y = obj->currY;
+    int bestDist = 0;
+
+    MapExplorationDir dir = NONE;
+
+    /*Check for FRONT node*/
+    if ((y - 1) > 0 && obj->distMap[x][y - 1] < bestDist) {
+        bestDist = obj->distMap[x][y - 1];
+        dir = Y_NEG; 
+    }
+    /*Check for LEFT node*/
+    if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] < bestDist) {
+        bestDist = obj->distMap[x + 1][y];
+        dir = X_POS; 
+    }
+    /*Check for BACK node*/
+    if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] < bestDist) {
+        bestDist = obj->distMap[x][y + 1];
+        dir = Y_POS; 
+    }
+    /*Check for RIGHT node*/
+    if ((x - 1) > 0 && obj->distMap[x - 1][y] < bestDist) {
+        bestDist = obj->distMap[x - 1][y];
+        dir = X_NEG; 
+    }
+    return dir;
 }

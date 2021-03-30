@@ -18,7 +18,8 @@ typedef enum _MapExplorationDir {
     X_POS,
     X_NEG,
     Y_POS,
-    Y_NEG
+    Y_NEG, 
+    NONE
 } MapExplorationDir;
 
 typedef struct _ExploreMap {
@@ -52,6 +53,14 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY);
 extern void mMove (ExploreMap *obj, int x, int y);
 extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
 extern MapExplorationDir mGetBestDir (ExploreMap *obj);
+
+/**
+ * @brief This function decides, based on the current location in the map, the best direction
+ * the drone should move next in order to reach base in the least amount of time.
+ * 
+ * @param obj reference to self.
+ * @return MapExplorationDir - the direction of least distance based on current location.
+ */
 extern MapExplorationDir mNextNode(ExploreMap *obj);
 /**
  * @brief This function runs the Wave Propagation algorithm starting at { baseX, baseY } tile.
