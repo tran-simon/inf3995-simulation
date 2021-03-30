@@ -1,45 +1,25 @@
 #ifndef EXPLORE_MAP_H
 #define EXPLORE_MAP_H
 
-#include <stddef.h>
+#include "node_array.h"
+#include <argos3/core/utility/math/general.h>
 
+#define MAP_SIZE 50
+#define MAX_ARENA_SIZE 1000
+
+/**
+ * @brief 
+ * @param X_POS : 0
+ * @param X_NEG : 1
+ * @param Y_POS : 2
+ * @param Y_NEG : 1
+ */
 typedef enum _MapExplorationDir {
     X_POS,
     X_NEG,
     Y_POS,
     Y_NEG
 } MapExplorationDir;
-
-/**
- * Node define a tile in the Wave propagation exploration algorithm.
- * @param distance : represents the distance relative to neighbour tiles. This value
- * is modified by the wave propagation function and must not be altered with unless the 
- * destination has changed.
- * @param state : represents the state of a Node. State 0 : invalid (unexplored or obstructed)
- * State 1 : valid   (explored and free)
- */
-typedef struct _Node {
-    short int x = -1;
-    short int y = -1;
-    short int distance = -1;
-    short int status = -1;
-} Node;
-
-/*Definition of dynamic array of Nodes*/
-typedef struct _ArrayofNode {
-  Node *array;
-  size_t used;
-  size_t size;
-
-  void (*InitArray) (struct _ArrayofNode *a, size_t initialSize);
-  void (*InsertArray) (struct _ArrayofNode *a, Node element);
-  void (*FreeArray) (struct _ArrayofNode *a);
-
-} ArrayofNode;
-/***********************************/
-extern void mInitArray(ArrayofNode *a, size_t initialSize);
-extern void mInsertArray(ArrayofNode *a, Node element);
-extern void mFreeArray(ArrayofNode *a); 
 
 typedef struct _ExploreMap {
     int initX;
@@ -49,17 +29,21 @@ typedef struct _ExploreMap {
 
     Node mBase;
     Node mActiveNode;
-    Node flowMap[50][50];
-    ArrayofNode newNodes;
-    
+
+    NodeArray newNodes;
+    NodeArray discovered;
 
     uint8_t mapResolutionCM;
-    uint8_t map[50][50];
+
+    uint8_t map[MAP_SIZE][MAP_SIZE];
+    int distMap[MAP_SIZE][MAP_SIZE];
+
     /* Member Functions */
     void (*Construct) (struct _ExploreMap *obj, int initX, int initY);
     void (*Move) (struct _ExploreMap *obj, int x, int y);
     int (*AddData) (struct _ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
     MapExplorationDir (*GetBestDir) (struct _ExploreMap *obj);
+    MapExplorationDir (*NextNode) (struct _ExploreMap *obj);
     void (*BuildFlow) (struct _ExploreMap *obj);
 } ExploreMap;
 
@@ -68,14 +52,21 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY);
 extern void mMove (ExploreMap *obj, int x, int y);
 extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
 extern MapExplorationDir mGetBestDir (ExploreMap *obj);
+extern MapExplorationDir mNextNode(ExploreMap *obj);
 /**
- * This function runs the Wave Propagation algorithm starting at { baseX, baseY } tile.
- * WARNING/!\ - Calling this function will overwrite every distances in the current flowMap 
-*/
+ * @brief This function runs the Wave Propagation algorithm starting at { baseX, baseY } tile.
+ * WARNING/!\ - Calling this function will overwrite every distances in the current distMap.
+ * @param obj : reference to self. 
+ */
 extern void mBuildFlowMap(ExploreMap *obj);
 
 /* Global Functions */
+/**
+ * @brief Construct a ExploreMap type object. This needs to be called in order to use internal functions
+ * for a desired object.
+ * 
+ * @param obj referece to self.
+ */
 extern void ExploreMapNew(ExploreMap *obj);
-extern void ArrayofNodeNew(ArrayofNode *a);
 
 #endif

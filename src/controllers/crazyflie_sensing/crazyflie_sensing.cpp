@@ -348,8 +348,8 @@ void CCrazyflieSensing::Explore() {
 void CCrazyflieSensing::GoToBase() {
    try {
       if(m_cState != STATE_GO_TO_BASE) {
-         map.mBase = {0U,0U, 1, 1}; //TODO assign real values
-         map.BuildFlow(&map);
+         map.mBase = {0,0, 1, 1}; //TODO assign real values
+         map.BuildFlow(&map); //Build a flow map of distance (distMap)
          m_cState = STATE_GO_TO_BASE;
       }
       /*m_CfExplorationDir = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL) ? CfExplorationDir::RIGHT_WALL : CfExplorationDir::LEFT_WALL;
@@ -358,16 +358,16 @@ void CCrazyflieSensing::GoToBase() {
       CRadians cZAngle, cYAngle, cXAngle;
       m_pcPos->GetReading().Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
       m_desiredAngle = (cZAngle + CRadians::PI).UnsignedNormalize();
-      isReturning = true;*/
+      isReturning = true;
 
       /***
        * Return to base 
-       * -> we approximate  base tile position
+       * -> we approximate base tile position
        * -> based on current tile, we find the closest explored tile from base we know 
        * -> from this node we run Wave Propagation algorithm to generate flowmap
        * -> we then use the flow map to find the closest path to the base
-       ***/
-      
+      ***/
+     
       
    } catch(std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED ON THE WAY BACK" << std::endl;
@@ -414,7 +414,7 @@ void CCrazyflieSensing::Explore_Forward(CRadians c_z_angle) {
 
    // If there is a wall in front of the drone
    if(m_cDist[0] < 50 && m_cDist[0] != -2) { 
-      velocity =0;
+      velocity = 0;
       MoveForward(c_z_angle); // Stop any ongoing mvmt
       m_CdExplorationState = ROTATE;
       m_desiredAngle = (m_CfExplorationDir == LEFT_WALL)? -1 * CRadians::PI_OVER_TWO : CRadians::PI_OVER_TWO;
