@@ -17,7 +17,7 @@
 #define PORT 80
 static bool waitingForStart = true;
 static int firstTime = 0; 
-static float velocity = 1;
+static float velocity = 0.05;
 static int fd[] = {-1,-1,-1,-1};
 static float posX[4];
 static float posY[4];
@@ -188,10 +188,10 @@ void CCrazyflieSensing::ControlStep() {
 
 
    if (!posX[fd[stoi(GetId().substr(6))]] & !posY[fd[stoi(GetId().substr(6))]]) {
+      LOG << "WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
       posX[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetX();
       posY[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetY();
       LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() << " x: " << posX[fd[stoi(GetId().substr(6))]] << " y: " << posY[fd[stoi(GetId().substr(6))]] << std::endl;
-
    }
 
    char stateBuffer[1024] = {0};
@@ -215,7 +215,7 @@ void CCrazyflieSensing::ControlStep() {
       if (currentCommand == 's') {
          TakeOff();
       }
-      else if ((sBatRead.AvailableCharge < 0.3 || ReadCommand(fd) == 'l')
+      else if ((sBatRead.AvailableCharge < 0.3 || ReadCommand(fd[stoi(GetId().substr(6))]) == 'l')
          && !isReturning) { 
          m_cState = CfState::STATE_GO_TO_BASE;
       }
@@ -234,16 +234,16 @@ void CCrazyflieSensing::ControlStep() {
          char posBuffer[1024] = {0};
          strcpy(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetX() - posX[fd[stoi(GetId().substr(6))]]).c_str());
          strcat(posBuffer, ";");
-         strcat(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetY() - posY[fd[stoi(GetId().substr(6))]]).c_str());
+         strcat(posBuffer, std::to_string(-1.0*(m_pcPos->GetReading().Position.GetY() - posY[fd[stoi(GetId().substr(6))]])).c_str());
 
          char pointBuffer[1024] = {0};
          strcpy(pointBuffer, std::to_string(m_cDist[0]).c_str());
          strcat(pointBuffer, ";");
          strcat(pointBuffer, std::to_string(m_cDist[2]).c_str());
          strcat(pointBuffer, ";");
-         strcat(pointBuffer, std::to_string(m_cDist[3]).c_str());
-         strcat(pointBuffer, ";");
          strcat(pointBuffer, std::to_string(m_cDist[1]).c_str());
+         strcat(pointBuffer, ";");
+         strcat(pointBuffer, std::to_string(m_cDist[3]).c_str());
 
          CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
          CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
@@ -328,10 +328,10 @@ void CCrazyflieSensing::Explore() {
 
       /* Move in the direction of exploration */
       switch (m_cDir) {
-         case CfDir::FRONT: MoveForward(c_z_angle); LOG << "Curr dist : "<< m_cDist[0] << std::endl; break;
-         case CfDir::LEFT: MoveLeft(c_z_angle); LOG << "Curr dist : "<< m_cDist[1] << std::endl; break;
-         case CfDir::BACK: MoveBack(c_z_angle); LOG << "Curr dist : "<< m_cDist[2] << std::endl; break;
-         case CfDir::RIGHT: MoveRight(c_z_angle); LOG << "Curr dist : "<< m_cDist[3] << std::endl; break;
+         case CfDir::FRONT: MoveForward(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[0] << std::endl; break;
+         case CfDir::LEFT: MoveLeft(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[1] << std::endl; break;
+         case CfDir::BACK: MoveBack(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[2] << std::endl; break;
+         case CfDir::RIGHT: MoveRight(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[3] << std::endl; break;
          case CfDir::STOP: {
             /* This case is used to stop any ongoing mouvement before switching direction */
             CVector3& stopCPos = StopMvmt();
@@ -341,7 +341,7 @@ void CCrazyflieSensing::Explore() {
             } else {
                StopMvmt();
             }
-            LOG << "STOP : " << Distance(stopCPos, cPos) << std::endl;
+            //LOG << "STOP : " << Distance(stopCPos, cPos) << std::endl;
             break;
          }
       }
