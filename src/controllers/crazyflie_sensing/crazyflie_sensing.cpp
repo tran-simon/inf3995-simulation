@@ -215,7 +215,7 @@ void CCrazyflieSensing::ControlStep() {
       if (currentCommand == 's') {
          TakeOff();
       }
-      else if ((sBatRead.AvailableCharge < 0.3 || ReadCommand(fd[stoi(GetId().substr(6))]) == 'l')
+      else if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l')
          && !isReturning) { 
          m_cState = CfState::STATE_GO_TO_BASE;
       }
