@@ -33,6 +33,7 @@
 #include <argos3/core/utility/math/quaternion.h>
 #include <argos3/core/utility/math/vector3.h>
 #include "explore_map.c"
+#include "node_array.c"
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -286,6 +287,7 @@ private:
 
    CfDir m_cDir;
    ExploreMap map;
+   bool test;
 };
 
 #endif

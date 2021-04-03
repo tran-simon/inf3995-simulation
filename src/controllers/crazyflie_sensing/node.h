@@ -9,11 +9,11 @@
  * @param status : represents the state of a Node. State 0 : invalid (unexplored or obstructed)
  * State 1 : valid   (explored and free)
  */
-typedef struct _Node {
+struct Node {
     int x;
     int y;
     int distance;
     int status;
-} Node;
+};
 
 #endif

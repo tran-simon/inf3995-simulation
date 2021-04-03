@@ -80,6 +80,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    CVector3 cPos = m_pcPos->GetReading().Position;
    ExploreMapNew(&map);
    map.Construct(&map, (int) (cPos.GetX() + 5), (int) (cPos.GetY() + 5));
+   test = true;
 }
 
 /****************************************/
@@ -182,7 +183,7 @@ uint CCrazyflieSensing::FetchRSSI() {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   /*char command;
+   char command;
    if(firstTime == 0){
       fd = ConnectToSocket();
       std::string id = "4";
@@ -207,7 +208,7 @@ void CCrazyflieSensing::ControlStep() {
    strcpy(velocityBuffer, std::to_string(velocity).c_str());
    CreateCommand(fd, stateBuffer, STATE);
    CreateCommand(fd, batteryBuffer, BATTERY);
-   CreateCommand(fd, velocityBuffer, VELOCITY);*/
+   CreateCommand(fd, velocityBuffer, VELOCITY);
 
    try {
       ++m_uiCurrentStep;
@@ -221,9 +222,10 @@ void CCrazyflieSensing::ControlStep() {
 
       // Check if drone are too close
       //CheckDronePosition();
-      if ((sBatRead.AvailableCharge < 0.3 /*|| ReadCommand(fd) == 'l'*/)
+      if ((sBatRead.AvailableCharge < 0.95 /*|| ReadCommand(fd) == 'l'*/)
          && !isReturning) { 
-         m_cState = CfState::STATE_GO_TO_BASE;
+         //m_cState = CfState::STATE_GO_TO_BASE;
+         GoToBase();
       }
 
       if(sDistRead.size() == 4) {
@@ -288,11 +290,11 @@ void CCrazyflieSensing::Explore() {
       map.Move(&map, (int) (cpos.GetX() + 5), (int) (cpos.GetY() + 5));
       
       /* Add the sensor value to the map */
-      map.AddData(&map,
-                  static_cast<int>(m_cDist[0]), /* Front distance in cm */
-                  static_cast<int>(m_cDist[1]), /* left distance  in cm */
-                  static_cast<int>(m_cDist[2]), /* back distance  in cm */
-                  static_cast<int>(m_cDist[3]));/* right distance in cm */
+      /*map.AddData(&map,
+                 /* static_cast<int>(m_cDist[0]), /* Front distance in cm */
+                 /* static_cast<int>(m_cDist[1]), /* left distance  in cm */
+                /*  static_cast<int>(m_cDist[2]), /* back distance  in cm */
+               /*   static_cast<int>(m_cDist[3]));/* right distance in cm */
       
       /* If the drone is too close to an obstacle, move away */
       
@@ -348,13 +350,35 @@ void CCrazyflieSensing::Explore() {
 void CCrazyflieSensing::GoToBase() {
    try {
       if(m_cState != STATE_GO_TO_BASE) {
-         map.mBase = {0,0, 1, 1}; //TODO assign real values
+         map.currX = 0;
+         map.currY = 0;
+         //map.mBase = {49,49, 1, 1}; //TODO assign real values
          map.BuildFlow(&map); //Build a flow map of distance (distMap)
+         LOG << "TEST" << map.testValue <<std::endl;
+         LOG << "{";
+         for(int i = 0; i < 50; i++){
+            LOG << "{";
+            for(int j = 0; j < 50; j++){
+               if(map.distMap[i][j] < 0) {
+                  LOG << "000,";
+               }
+               else if(map.distMap[i][j] > 100) {
+                  LOG << map.distMap[i][j] << ",";
+               } else if(map.distMap[i][j] >= 10) {
+                  LOG << "0" << map.distMap[i][j] << ",";
+               } else {
+                  LOG << "00" << map.distMap[i][j] << ",";
+               }
+            }
+         LOG << "}," << std::endl;
+         }
+         LOG << "}" << std::endl;
          m_cState = STATE_GO_TO_BASE;
+         //map.testValue = 3;
       }
       /*m_CfExplorationDir = (m_CfExplorationDir == CfExplorationDir::LEFT_WALL) ? CfExplorationDir::RIGHT_WALL : CfExplorationDir::LEFT_WALL;
       m_CdExplorationState = CfExplorationState::ROTATE;
-
+      
       CRadians cZAngle, cYAngle, cXAngle;
       m_pcPos->GetReading().Orientation.ToEulerAngles(cZAngle, cYAngle, cXAngle);
       m_desiredAngle = (cZAngle + CRadians::PI).UnsignedNormalize();
@@ -367,7 +391,9 @@ void CCrazyflieSensing::GoToBase() {
        * -> from this node we run Wave Propagation algorithm to generate flowmap
        * -> we then use the flow map to find the closest path to the base
       ***/
+      //LOG << "TEST VALUE IS : " << p_map->testValue << std::endl;
       
+      //m_cState = STATE_LAND;
       
    } catch(std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED ON THE WAY BACK" << std::endl;
