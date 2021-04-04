@@ -14,8 +14,16 @@ extern void ExploreMapNew(ExploreMap *obj) {
 /* Class Constructor */
 extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     obj->mapResolutionCM = MAX_ARENA_SIZE / MAP_SIZE; /* Number of CM per square */
-    obj->testValue = 1;
-    
+    obj->currX = (int) initX / obj->mapResolutionCM;
+    obj->currY = (int) initY / obj->mapResolutionCM;
+    obj->initX = obj->currX;
+    obj->initY = obj->currY;
+    for (unsigned int i = 0; i < MAP_SIZE; i++) {
+        for (unsigned int j = 0; j < MAP_SIZE; j++) {
+            //obj->map[i][j] = 0;
+            obj->distMap[i][j] = (obj->map[i][j] == 0) ? -1:0;
+        }
+    }
     obj->newNodes = (NodeArray *)malloc(sizeof(NodeArray));
     NodeArrayNew(obj->newNodes);
     obj->newNodes->Init(obj->newNodes, 16);
@@ -27,19 +35,7 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     /*For now base is (0,0)*/
     /*TODO: add base pos estimation*/
     obj->mBase = {49,49,1,1};
-
-    obj->currX = (int) (initX * 100) / obj->mapResolutionCM;
-    obj->currY = (int) (initY * 100) / obj->mapResolutionCM;
-
-    obj->initX = obj->currX;
-    obj->initY = obj->currY;
-    
-    for (unsigned int i = 0; i < MAP_SIZE; i++) {
-        for (unsigned int j = 0; j < MAP_SIZE; j++) {
-            //obj->map[i][j] = 0;
-            obj->distMap[i][j] = (obj->map[i][j] == 0) ? -1:0;
-        }
-    }
+    obj->mActiveNode = {0, 0, 0, 0};
 }
 
 /* Move the drone on the map */
@@ -93,6 +89,10 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
         obj->map[i][obj->currY] = 2;
     }
     return 0;
+}
+
+int max(int a, int b) {
+    return (a >= b)? a: b;
 }
 
 extern MapExplorationDir mGetBestDir (ExploreMap *obj) {
@@ -209,31 +209,35 @@ extern MapExplorationDir mNextNode(ExploreMap *obj) {
     MapExplorationDir dir = NONE;
     int x = obj->currX;
     int y = obj->currY;
-    int bestDist = (MAP_SIZE * MAP_SIZE) + 1;
+    int bestDist = obj->distMap[x][y];
 
     // We make sure we are not already at destination
     if (!(x == obj->mBase.x && y == obj->mBase.y)) {
         // Check for FRONT node
-        if ((y - 1) > -1 && obj->distMap[x][y - 1] < bestDist) {
+        if ((y - 1) > -1 && obj->distMap[x][y - 1] > 0 && obj->distMap[x][y - 1] < bestDist) {
             bestDist = obj->distMap[x][y - 1];
+            //obj->mActiveNode = {x, (y - 1), bestDist, 1};
             dir = Y_NEG; 
         }
 
         // Check for LEFT node
-        if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] < bestDist) {
+        if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0 && obj->distMap[x + 1][y] < bestDist) {
             bestDist = obj->distMap[x + 1][y];
+            //obj->mActiveNode = {(x + 1), y, bestDist, 1};
             dir = X_POS; 
         }
 
         // Check for BACK node
-        if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] < bestDist) {
+        if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0 && obj->distMap[x][y + 1] < bestDist) {
             bestDist = obj->distMap[x][y + 1];
+            //obj->mActiveNode = {x, (y + 1), bestDist, 1};
             dir = Y_POS; 
         }
 
         // Check for RIGHT node
-        if ((x - 1) > -1 && obj->distMap[x - 1][y] < bestDist) {
+        if ((x - 1) > -1 && obj->distMap[x - 1][y] > 0 && obj->distMap[x - 1][y] < bestDist) {
             bestDist = obj->distMap[x - 1][y];
+            //obj->mActiveNode = {(x - 1), y, bestDist, 1};
             dir = X_NEG; 
         }
     }

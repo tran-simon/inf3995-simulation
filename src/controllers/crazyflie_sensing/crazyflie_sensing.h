@@ -197,6 +197,12 @@ public:
    void MoveRight(CRadians c_z_angle, float dist = 0);
 
    /*** 
+    * This function makes the drone stop moving
+    * by setting the desired pos to the current pos 
+   ***/
+   CVector3& StopMvmt();
+
+   /*** 
     * This function makes the drone rotate
     * @param angle Angle at which the drone rotates. 
    ***/
@@ -276,7 +282,6 @@ private:
    /* Current step */
    uint m_uiCurrentStep;
 
-
    /*Robot exploration direction (left / right wall follower)*/
    CfExplorationDir m_CfExplorationDir;
    CfExplorationState m_CdExplorationState;
@@ -287,7 +292,9 @@ private:
 
    CfDir m_cDir;
    ExploreMap map;
-   bool test;
+   MapExplorationDir prevDir;
+   int prev_x;
+   int prev_y;
 };
 
 #endif
