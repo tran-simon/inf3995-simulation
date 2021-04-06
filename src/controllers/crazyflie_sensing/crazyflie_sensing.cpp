@@ -196,7 +196,7 @@ void CCrazyflieSensing::ControlStep() {
       if (currentCommand == 's') {
          TakeOff();
       }
-      else if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l')
+      else if ((sBatRead.AvailableCharge < 0.98 || currentCommand == 'l')
          && !isReturning) { 
          GoToBase();
       }
