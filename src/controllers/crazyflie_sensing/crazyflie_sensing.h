@@ -230,7 +230,7 @@ private:
    /* Pointer to the crazyflie distance sensor */
    CCI_CrazyflieDistanceScannerSensor* m_pcDistance;
 
-    /* Pointer to the position actuator */
+   /* Pointer to the position actuator */
    CCI_QuadRotorPositionActuator* m_pcPropellers;
    
    /* Pointer to the range and bearing actuator */
@@ -251,10 +251,10 @@ private:
    /* Base position on take off */
    CVector3 m_cBasePos;
 
-   /*Current and previous state of the drone*/
+   /* Current and previous state of the drone */
    CfState m_cState;
 
-   /*Current state of the battery*/
+   /* Current state of the battery */
    CCI_BatterySensor::SReading sBatRead;
    
    CRadians m_desiredAngle;
@@ -268,21 +268,22 @@ private:
    ***/
    Real m_cDist[4];
    
+   /* Current drone to object distance in the front direction */
    Real frontDist;
 
-   /*Current drone to object distance in the left direction*/
+   /* Current drone to object distance in the left direction */
    Real leftDist;
 
-   /*Current drone to object distance in the back direction*/
+   /* Current drone to object distance in the back direction */
    Real backDist;
 
-   /*Current drone to object distance in the right direction*/
+   /* Current drone to object distance in the right direction */
    Real rightDist;
 
    /* Current step */
    uint m_uiCurrentStep;
 
-   /*Robot exploration direction (left / right wall follower)*/
+   /* Robot exploration direction (left / right wall follower) */
    CfExplorationDir m_CfExplorationDir;
    CfExplorationState m_CdExplorationState;
 
@@ -292,9 +293,6 @@ private:
 
    CfDir m_cDir;
    ExploreMap map;
-   MapExplorationDir prevDir;
-   int prev_x;
-   int prev_y;
 };
 
 #endif

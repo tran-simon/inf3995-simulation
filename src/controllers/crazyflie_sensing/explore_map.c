@@ -32,10 +32,8 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     NodeArrayNew(obj->discovered);
     obj->discovered->Init(obj->discovered, 16);
 
-    /*For now base is (0,0)*/
     /*TODO: add base pos estimation*/
-    obj->mBase = {49,49,1,1};
-    obj->mActiveNode = {0, 0, 0, 0};
+    obj->mBase = {48,48,1,1};
 }
 
 /* Move the drone on the map */
@@ -204,42 +202,54 @@ extern void mBuildFlowMap(ExploreMap *obj) {
     obj->discovered->Free(obj->discovered);
 }
 
-extern MapExplorationDir mNextNode(ExploreMap *obj) {
-    // Local variables
+extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg) {
+    /* Local variable that represent the next direction of movement */
     MapExplorationDir dir = NONE;
     int x = obj->currX;
     int y = obj->currY;
     int bestDist = obj->distMap[x][y];
-
+    
     // We make sure we are not already at destination
     if (!(x == obj->mBase.x && y == obj->mBase.y)) {
+
         // Check for FRONT node
-        if ((y - 1) > -1 && obj->distMap[x][y - 1] > 0 && obj->distMap[x][y - 1] < bestDist) {
+        if ((y - 1) > -1 && obj->distMap[x][y - 1] > 0 && obj->distMap[x][y - 1] <= bestDist) {
             bestDist = obj->distMap[x][y - 1];
-            //obj->mActiveNode = {x, (y - 1), bestDist, 1};
             dir = Y_NEG; 
         }
 
         // Check for LEFT node
-        if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0 && obj->distMap[x + 1][y] < bestDist) {
+        if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0 && obj->distMap[x + 1][y] <= bestDist) {
             bestDist = obj->distMap[x + 1][y];
-            //obj->mActiveNode = {(x + 1), y, bestDist, 1};
             dir = X_POS; 
         }
 
         // Check for BACK node
-        if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0 && obj->distMap[x][y + 1] < bestDist) {
+        if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0 && obj->distMap[x][y + 1] <= bestDist) {
             bestDist = obj->distMap[x][y + 1];
-            //obj->mActiveNode = {x, (y + 1), bestDist, 1};
             dir = Y_POS; 
         }
 
         // Check for RIGHT node
-        if ((x - 1) > -1 && obj->distMap[x - 1][y] > 0 && obj->distMap[x - 1][y] < bestDist) {
+        if ((x - 1) > -1 && obj->distMap[x - 1][y] > 0 && obj->distMap[x - 1][y] <= bestDist) {
             bestDist = obj->distMap[x - 1][y];
-            //obj->mActiveNode = {(x - 1), y, bestDist, 1};
             dir = X_NEG; 
         }
+        
+        // We make sure not to hit a wall (doen't work sometimes)
+        int danger = 9;
+        if (y_pos < danger && y_pos != -2) return Y_NEG;
+        if (x_neg < danger && x_neg != -2) return X_POS;
+        if (y_neg < danger && y_neg != -2) return Y_POS;
+        if (x_pos < danger && x_pos != -2) return X_NEG;
+
+        // We make sure we aren't in a wall
+        if (obj->distMap[x][y] < 1) {
+            if((y - 1) > -1 && obj->distMap[x][y - 1] > 0)       return Y_NEG;
+            if((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0) return X_POS;
+            if((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0) return Y_POS;
+            if((x - 1) > -1 && obj->distMap[x - 1][y] > 0)       return X_NEG;
+        } 
     }
     return dir;
 }
