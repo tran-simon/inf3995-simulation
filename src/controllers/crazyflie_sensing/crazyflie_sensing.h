@@ -34,6 +34,8 @@
 #include <argos3/core/utility/math/vector3.h>
 #include "explore_map.c"
 #include "node_array.c"
+#include <iostream>
+#include <fstream>
 /*
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
@@ -65,35 +67,17 @@ public:
    enum CfValue {
       STATE,
       BATTERY,
-      VELOCITY
-   };
-
-   /**
-    * Enum that represents inner states of explorations.
-    * 
-    * FORWARD = 0
-    * WALL_END =  1
-    * ROTATE =  2
-    * DEBOUNCE = 3
-   **/
-   enum CfExplorationState {
-      FORWARD,
-      WALL_END,
-      ROTATE,
-      DEBOUNCE,
-      AVOID_WALL
-   };
-
-   enum CfExplorationDir {
-      LEFT_WALL,
-      RIGHT_WALL
+      VELOCITY,
+      POSITION,
+      POINT
    };
 
    enum CfDir {
       FRONT,
       LEFT,
       BACK,
-      RIGHT
+      RIGHT,
+      STOP
    };
 
    /* Gives the distance at which drones returns -2 as mesured distance */
@@ -130,13 +114,8 @@ public:
 
    void CreateCommand(int fd, char* message, int value);
 
-   void SendCommand(int fd, char* message);
-   /***
-    * This function fetch the RSSI signal strenght and return a approximative distance
-    * between the signal source and the drone.
-    ***/
-   uint FetchRSSI();
-    
+   int SendCommand(int fd, char* message);
+
    /*
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
@@ -165,12 +144,14 @@ public:
     */   
 
    /****************************************/
-   /*       Explore States functions       */
+   /*           Movements functions        */
    /****************************************/
-   void Explore_Forward(CRadians c_z_angle);
-   void Explore_WallEnd(CRadians c_z_angle);
-   void Explore_Rotate(CRadians c_z_angle);
-   void Explore_AvoidWall();
+
+   /*** 
+    * This function return the best direction for the drone
+    * @return cfDir:CfDir the best direction to explore
+   ***/
+   enum CfDir GetBestDir();
 
    /*** 
     * This function makes the drone moves forward
@@ -179,19 +160,19 @@ public:
    void MoveForward(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves forward
+    * This function makes the drone moves to the left
     * @param c_z_angle Angle at which the drone is. 
    ***/
    void MoveLeft(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves forward
+    * This function makes the drone moves back
     * @param c_z_angle Angle at which the drone is. 
    ***/
    void MoveBack(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves forward
+    * This function makes the drone moves to the right
     * @param c_z_angle Angle at which the drone is. 
    ***/
    void MoveRight(CRadians c_z_angle, float dist = 0);
@@ -225,6 +206,7 @@ public:
    
    
 
+   void printMap();
 private:
 
    /* Pointer to the crazyflie distance sensor */
@@ -283,12 +265,6 @@ private:
    /* Current step */
    uint m_uiCurrentStep;
 
-   /* Robot exploration direction (left / right wall follower) */
-   CfExplorationDir m_CfExplorationDir;
-   CfExplorationState m_CdExplorationState;
-
-   Real previousDist;
-   CVector3 previousPos;
    bool isReturning; 
 
    CfDir m_cDir;

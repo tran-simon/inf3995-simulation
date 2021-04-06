@@ -86,7 +86,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
     if (x_neg != -2) {
         obj->map[i][obj->currY] = 2;
     }
-    return 0;
+    return nEmpty;
 }
 
 int max(int a, int b) {
@@ -94,7 +94,75 @@ int max(int a, int b) {
 }
 
 extern MapExplorationDir mGetBestDir (ExploreMap *obj) {
-    return MapExplorationDir::X_NEG;
+    /***
+    *   We want to go in the dir with the biggest potential information gain
+    **/
+
+    /* Check if y_neg is a good direction */
+    int y_neg_sum = 0;
+    int boxValue = -1;
+    unsigned int i = obj->currX;
+    unsigned int j = obj->currY;
+    while (boxValue != 2) {
+        if (j == 0) {boxValue = 2; break;}
+
+        boxValue = obj->map[i][j];
+        if (boxValue == 0) {y_neg_sum += 4;}
+        if (boxValue == 1) {y_neg_sum += 1;}
+        
+        j--;
+    }
+
+    /* Check if x_pos is a good direction */
+    int x_pos_sum = 0;
+    boxValue = -1;
+    i = obj->currX;
+    j = obj->currY;
+    while (boxValue != 2) {
+        if (i == 49) {boxValue = 2; break;}
+
+        boxValue = obj->map[i][j];
+        if (boxValue == 0) {x_pos_sum += 4;}
+        if (boxValue == 1) {x_pos_sum += 1;}
+        
+        i++;
+    }
+
+    /* Check if y_pos is a good direction */
+    int y_pos_sum = 0;
+    boxValue = -1;
+    i = obj->currX;
+    j = obj->currY;
+    while (boxValue != 2) {
+        if (j == 49) {boxValue = 2; break;}
+
+        boxValue = obj->map[i][j];
+        if (boxValue == 0) {y_pos_sum += 4;}
+        if (boxValue == 1) {y_pos_sum += 1;}
+        
+        j++;
+    }
+
+    /* Check if x_neg is a good direction */
+    int x_neg_sum = 0;
+    boxValue = -1;
+    i = obj->currX;
+    j = obj->currY;
+    while (boxValue != 2) {
+        if (i == 0) {boxValue = 2; break;}
+
+        boxValue = obj->map[i][j];
+        if (boxValue == 0) {x_neg_sum += 4;}
+        if (boxValue == 1) {x_neg_sum += 1;}
+        
+        i--;
+    }
+
+    int maxSum = max(y_neg_sum, max(x_pos_sum, max(y_pos_sum, x_neg_sum)));
+    if (y_neg_sum == maxSum) { return MapExplorationDir::Y_NEG; }
+    if (x_pos_sum == maxSum) { return MapExplorationDir::X_POS; }
+    if (y_pos_sum == maxSum) { return MapExplorationDir::Y_POS; }
+    if (x_neg_sum == maxSum) { return MapExplorationDir::X_NEG; }
 }
 
 extern void mBuildFlowMap(ExploreMap *obj) {
