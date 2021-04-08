@@ -203,7 +203,7 @@ void CCrazyflieSensing::ControlStep() {
 
       if (currentCommand == 's') {
          TakeOff();
-      } else if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && !isReturning) { 
+      } else if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l')) { 
          GoToBase();
       }
 
@@ -342,7 +342,7 @@ void CCrazyflieSensing::printMap() {
    std::ofstream MyFile("map"+GetId()+".txt");
    for (unsigned int i = 0; i < 50; i++) {
       for (unsigned int j = 0; j < 50; j++) {
-         MyFile << map.map[i][j] << " ";
+         MyFile << map.distMap[i][j] << " ";
       }
       MyFile << std::endl;
    }
@@ -357,6 +357,7 @@ void CCrazyflieSensing::GoToBase() {
          map.Move(&map, (int) ((cpos.GetX() + 5) * 100), (int) ((cpos.GetY() + 5) * 100));
 
          // We build the flowmap (distMap) only once
+         printMap();
          map.BuildFlow(&map);
 
          /*====Print distances map====*/

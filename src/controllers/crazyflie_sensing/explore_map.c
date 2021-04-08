@@ -20,7 +20,7 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     obj->initY = obj->currY;
     for (unsigned int i = 0; i < MAP_SIZE; i++) {
         for (unsigned int j = 0; j < MAP_SIZE; j++) {
-            //obj->map[i][j] = 0;
+            obj->map[i][j] = 0;
             obj->distMap[i][j] = (obj->map[i][j] == 0) ? -1:0;
         }
     }
@@ -49,7 +49,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
     
     /* Fill the map with y_neg */
     nEmpty = (y_neg != -2)? y_neg / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currY; i >= obj->currY - nEmpty && i > 0; i--){
+    for (i = obj->currY; i >= obj->currY - nEmpty && i > -1; i--){
         obj->map[obj->currX][i] = 1;
         obj->distMap[obj->currX][i] = 0;
     }
@@ -79,7 +79,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with x_neg */
     nEmpty = (x_neg != -2)? x_neg / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currX; i >= obj->currX - nEmpty && i > 0; i--){
+    for (i = obj->currX; i >= obj->currX - nEmpty && i > -1; i--){
         obj->map[i][obj->currY] = 1;
         obj->distMap[i][obj->currY] = 0;
     }
