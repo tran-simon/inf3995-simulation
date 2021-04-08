@@ -14,13 +14,14 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <cstdlib>
 #define PORT 80
 static bool waitingForStart = true;
 static int firstTime = 0; 
-static float velocity = 0.05;
-static int fd[] = {-1,-1,-1,-1};
-static float posX[4];
-static float posY[4];
+static float velocity = 0.5;
+static int fd[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+static float posX[10];
+static float posY[10];
 
 
 /****************************************/
@@ -61,11 +62,10 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    catch(CARGoSException& ex) {
       THROW_ARGOSEXCEPTION_NESTED("Error initializing the crazyflie sensing controller for robot \"" << GetId() << "\"", ex);
    }
-   
-   
 
    /* Create a random number generator. We use the 'argos' category so
       that creation, reset, seeding and cleanup are managed by ARGoS. */
+
    m_pcRNG = CRandom::CreateRNG("argos");
    m_cState = CfState::STATE_START;
    m_uiCurrentStep = 0;
@@ -94,7 +94,7 @@ int CCrazyflieSensing::ConnectToSocket() {
    char buffer[1024] = {0}; 
    int port = PORT + stoi(GetId().substr(6));
 
-   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
       LOG << "socket creation failed.." << std::endl;
       return -1;
    }
@@ -102,7 +102,7 @@ int CCrazyflieSensing::ConnectToSocket() {
    servaddr.sin_family = AF_INET;
    servaddr.sin_port = htons(port);
 
-   if (inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr)<=0) { 
+   if (inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr) <= 0) { 
       LOG << "Invalid address/ Address not supported" << std::endl; 
       return -1; 
    } 
@@ -119,7 +119,7 @@ int CCrazyflieSensing::ConnectToSocket() {
    if (valread > 0) {
       return sock;
    }
-   else return -1;
+   else return -1; 
 }
 
 char CCrazyflieSensing::ReadCommand(int sock) {
@@ -129,16 +129,15 @@ char CCrazyflieSensing::ReadCommand(int sock) {
 
    valRead = recv(sock, buffer, sizeof(buffer), MSG_PEEK);
 
-   for (int i = 0; i < sizeof(buffer); i++) {
+   for (int i = 0; i < sizeof(buffer); i++){
       if (buffer[i] != '\0') {
          index++;
-      } else break;
+      }else break;
    }
-
    if (index == -1) return 'f';
-
    return buffer[index];
 }
+
 
 void CCrazyflieSensing::CreateCommand(int sock, char* message, int value) {
    char markedBuffer[1024] = {0};
@@ -168,11 +167,20 @@ void CCrazyflieSensing::ControlStep() {
       fd[stoi(GetId().substr(6))] = ConnectToSocket();
    }
 
-   if (!posX[fd[stoi(GetId().substr(6))]] & !posY[fd[stoi(GetId().substr(6))]]) {
-      LOG << "WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
-      posX[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetX();
-      posY[fd[stoi(GetId().substr(6))]] = m_pcPos->GetReading().Position.GetY();
-      LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() << " x: " << posX[fd[stoi(GetId().substr(6))]] << " y: " << posY[fd[stoi(GetId().substr(6))]] << std::endl;
+   if (!posX[stoi(GetId().substr(6))] & !posY[stoi(GetId().substr(6))]) {
+      posX[stoi(GetId().substr(6))] = m_pcPos->GetReading().Position.GetX();
+      posY[stoi(GetId().substr(6))] = m_pcPos->GetReading().Position.GetY();
+      if (stoi(GetId().substr(6)) != 0) {
+         float differenceY = posY[0] - posY[stoi(GetId().substr(6))];
+         float newPosY = (posY[0] + differenceY);
+         LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
+                                     << " x: " << posX[stoi(GetId().substr(6))] << " y: " 
+                                     << newPosY << std::endl;
+      } else {
+         LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
+                                     << " x: " << posX[stoi(GetId().substr(6))] << " y: " 
+                                     << posY[stoi(GetId().substr(6))] << std::endl;
+      }
    }
 
    char stateBuffer[1024] = {0};
@@ -195,15 +203,13 @@ void CCrazyflieSensing::ControlStep() {
 
       if (currentCommand == 's') {
          TakeOff();
-      }
-      else if ((sBatRead.AvailableCharge < 0.98 || currentCommand == 'l')
-         && !isReturning) { 
+      } else if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && !isReturning) { 
          GoToBase();
       }
 
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
       auto iterDistRead = sDistRead.begin();
-      if (sDistRead.size() == 4) {
+      if(sDistRead.size() == 4) {
          /*Updates of the distance sensor*/
          m_cDist[0] = (iterDistRead++)->second; /* Front distance */
          m_cDist[1] = (iterDistRead++)->second; /* left distance  */
@@ -213,9 +219,9 @@ void CCrazyflieSensing::ControlStep() {
          //std::string front = std::to_string(m_cDist[0]).c_str();
 
          char posBuffer[1024] = {0};
-         strcpy(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetX() - posX[fd[stoi(GetId().substr(6))]]).c_str());
+         strcpy(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetX() - posX[stoi(GetId().substr(6))]).c_str());
          strcat(posBuffer, ";");
-         strcat(posBuffer, std::to_string(-1.0*(m_pcPos->GetReading().Position.GetY() - posY[fd[stoi(GetId().substr(6))]])).c_str());
+         strcat(posBuffer, std::to_string(-1.0*(m_pcPos->GetReading().Position.GetY() - posY[stoi(GetId().substr(6))])).c_str());
 
          char pointBuffer[1024] = {0};
          strcpy(pointBuffer, std::to_string(m_cDist[0]).c_str());
@@ -242,7 +248,7 @@ void CCrazyflieSensing::ControlStep() {
             default: break;
          }
       }
-   } catch(std::exception e) {
+   } catch (std::exception e) {
       LOGERR << "AN EXCEPTION AS OCCURED IN CONTROLSTEP" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
@@ -257,7 +263,7 @@ void CCrazyflieSensing::TakeOff() {
    try {
       CVector3 cPos = m_pcPos->GetReading().Position;
       Real height = 0.3 * stoi(GetId().substr(6)) + 0.3;
-      if (m_cState != STATE_TAKE_OFF) {
+      if(m_cState != STATE_TAKE_OFF) {
          m_cState = STATE_TAKE_OFF;
          cPos.SetZ(height);
          m_pcPropellers->SetAbsolutePosition(cPos);
@@ -273,7 +279,9 @@ void CCrazyflieSensing::TakeOff() {
 
 void CCrazyflieSensing::Explore() {
    try {
-      if (m_cState != STATE_EXPLORE) m_cState = STATE_EXPLORE;
+      if(m_cState != STATE_EXPLORE) {
+         m_cState = STATE_EXPLORE;
+      }
 
       CRadians c_z_angle, c_y_angle, c_x_angle;
       m_pcPos->GetReading().Orientation.ToEulerAngles(c_z_angle, c_y_angle, c_x_angle);
@@ -283,19 +291,19 @@ void CCrazyflieSensing::Explore() {
       map.Move(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
       
       /* Add the sensor value to the map */
-      /*map.AddData(&map,
-                 /* static_cast<int>(m_cDist[0]), /* Front distance in cm */
-                 /* static_cast<int>(m_cDist[1]), /* left distance  in cm */
-                 /* static_cast<int>(m_cDist[2]), /* back distance  in cm */
-                 /* static_cast<int>(m_cDist[3]));/* right distance in cm */
+      map.AddData(&map,
+                  static_cast<int>(m_cDist[0]), /* Front distance in cm */
+                  static_cast<int>(m_cDist[1]), /* left distance  in cm */
+                  static_cast<int>(m_cDist[2]), /* back distance  in cm */
+                  static_cast<int>(m_cDist[3]));/* right distance in cm */
       
       /* If the drone is too close to an obstacle, move away */
       
-      Real minimalDist = 30;
-      if (m_cDist[0] < minimalDist && m_cDist[0] != -2) { MoveBack(c_z_angle); }
-      if (m_cDist[1] < minimalDist && m_cDist[1] != -2) { MoveRight(c_z_angle); }
-      if (m_cDist[2] < minimalDist && m_cDist[2] != -2) { MoveForward(c_z_angle); }
-      if (m_cDist[3] < minimalDist && m_cDist[3] != -2) { MoveLeft(c_z_angle); }
+      Real minimalDist = 120;
+      if (m_cDist[0] < minimalDist && m_cDist[0] != -2) { MoveBack(c_z_angle, 7.0);}
+      if (m_cDist[1] < minimalDist && m_cDist[1] != -2) { MoveRight(c_z_angle, 7.0);}
+      if (m_cDist[2] < minimalDist && m_cDist[2] != -2) { MoveForward(c_z_angle, 7.0);}
+      if (m_cDist[3] < minimalDist && m_cDist[3] != -2) { MoveLeft(c_z_angle, 7.0);}
       
       /* If there is an obstacle in the direction of the drone, choose another direction */
       if (m_cDir != CfDir::STOP && m_cDist[m_cDir] < 75 && m_cDist[m_cDir] != -2) {
