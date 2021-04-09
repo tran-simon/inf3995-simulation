@@ -21,7 +21,7 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     for (unsigned int i = 0; i < MAP_SIZE; i++) {
         for (unsigned int j = 0; j < MAP_SIZE; j++) {
             obj->map[i][j] = 0;
-            obj->distMap[i][j] = (obj->map[i][j] == 0) ? -1:0;
+            obj->distMap[i][j] = -1;/* (obj->map[i][j] == 0) ? -1:0;*/
         }
     }
     obj->newNodes = (NodeArray *)malloc(sizeof(NodeArray));
@@ -49,9 +49,9 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
     
     /* Fill the map with y_neg */
     nEmpty = (y_neg != -2)? y_neg / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currY; i >= obj->currY - nEmpty && i > -1; i--){
+    for (i = obj->currY; i >= obj->currY - nEmpty && i > 0; i--){
         obj->map[obj->currX][i] = 1;
-        obj->distMap[obj->currX][i] = 0;
+        if (i > obj->currY - nEmpty) { obj->distMap[obj->currX][i] = 0; }
     }
     if (y_neg != -2) {
         obj->map[obj->currX][i] = 2;
@@ -59,9 +59,9 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with x_pos */
     nEmpty = (x_pos != -2)? x_pos / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currX; i <= obj->currX + nEmpty && i < MAP_SIZE; i++){
+    for (i = obj->currX; i <= obj->currX + nEmpty && i < MAP_SIZE - 1; i++){
         obj->map[i][obj->currY] = 1;  
-        obj->distMap[i][obj->currY] = 0;  
+        if (i < obj->currX + nEmpty) { obj->distMap[i][obj->currY] = 0; }  
     }
     if (x_pos != -2) {
         obj->map[i][obj->currY] = 2;
@@ -69,9 +69,9 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with y_pos */
     nEmpty = (y_pos != -2)? y_pos / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currY; i <= obj->currY + nEmpty && i < MAP_SIZE; i++){
+    for (i = obj->currY; i <= obj->currY + nEmpty && i < MAP_SIZE - 1; i++){
         obj->map[obj->currX][i] = 1;
-        obj->distMap[obj->currX][i] = 0;
+        if (i < obj->currY + nEmpty) { obj->distMap[obj->currX][i] = 0; }
     }
     if (y_pos != -2) {
         obj->map[obj->currX][i] = 2;
@@ -79,9 +79,9 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with x_neg */
     nEmpty = (x_neg != -2)? x_neg / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currX; i >= obj->currX - nEmpty && i > -1; i--){
+    for (i = obj->currX; i >= obj->currX - nEmpty && i > 0; i--){
         obj->map[i][obj->currY] = 1;
-        obj->distMap[i][obj->currY] = 0;
+        if (i > obj->currX - nEmpty) { obj->distMap[i][obj->currY] = 0; }
     }
     if (x_neg != -2) {
         obj->map[i][obj->currY] = 2;
@@ -93,7 +93,7 @@ int max(int a, int b) {
     return (a >= b)? a: b;
 }
 
-extern MapExplorationDir mGetBestDir (ExploreMap *obj) {
+extern MapExplorationDir mGetBestDir (ExploreMap *obj, MapExplorationDir currDir) {
     /***
     *   We want to go in the dir with the biggest potential information gain
     **/
@@ -157,15 +157,26 @@ extern MapExplorationDir mGetBestDir (ExploreMap *obj) {
         
         i--;
     }
+    /* Get the sum in the current direction */
+    int currSum = 0;
+    if (currDir == MapExplorationDir::Y_NEG) { currSum = y_neg_sum; }
+    if (currDir == MapExplorationDir::X_POS) { currSum = x_pos_sum; }
+    if (currDir == MapExplorationDir::Y_POS) { currSum = y_pos_sum; }
+    if (currDir == MapExplorationDir::X_NEG) { currSum = x_neg_sum; }
 
+    /* Return the next best direction, if it is at least 20% better than the curr dir */
     int maxSum = max(y_neg_sum, max(x_pos_sum, max(y_pos_sum, x_neg_sum)));
-    if (y_neg_sum == maxSum) { return MapExplorationDir::Y_NEG; }
-    if (x_pos_sum == maxSum) { return MapExplorationDir::X_POS; }
-    if (y_pos_sum == maxSum) { return MapExplorationDir::Y_POS; }
-    if (x_neg_sum == maxSum) { return MapExplorationDir::X_NEG; }
+    if (y_neg_sum == maxSum && maxSum > 2 * currSum) { return MapExplorationDir::Y_NEG; }
+    if (x_pos_sum == maxSum && maxSum > 2 * currSum) { return MapExplorationDir::X_POS; }
+    if (y_pos_sum == maxSum && maxSum > 2 * currSum) { return MapExplorationDir::Y_POS; }
+    if (x_neg_sum == maxSum && maxSum > 2 * currSum) { return MapExplorationDir::X_NEG; }
+
+    /* If no direction is at least 20% better than the curr dir, return the curr dir*/
+    return currDir;
 }
 
 extern void mBuildFlowMap(ExploreMap *obj) {
+    argos::LOG << "mBuildFlowMap" << std::endl;
     // Here we add the first Node corresponding to base position
     obj->newNodes->Insert(obj->newNodes, obj->mBase);
     obj->distMap[obj->mBase.x][obj->mBase.y] = obj->mBase.distance;
@@ -266,58 +277,58 @@ extern void mBuildFlowMap(ExploreMap *obj) {
         }
     }
     // We free the allocated memory
-    obj->newNodes->Free(obj->newNodes);
-    obj->discovered->Free(obj->discovered);
+    // obj->newNodes->Free(obj->newNodes);
+    // obj->discovered->Free(obj->discovered);
 }
 
 extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg) {
     /* Local variable that represent the next direction of movement */
-    MapExplorationDir dir = NONE;
+    MapExplorationDir dir = MapExplorationDir::NONE;
     int x = obj->currX;
     int y = obj->currY;
-    int bestDist = obj->distMap[x][y];
+    int bestDist = (obj->distMap[x][y] > 0) ? obj->distMap[x][y] : 2500;
     
     // We make sure we are not already at destination
     if (!(x == obj->mBase.x && y == obj->mBase.y)) {
 
         // Check for FRONT node
-        if ((y - 1) > -1 && obj->distMap[x][y - 1] > 0 && obj->distMap[x][y - 1] <= bestDist) {
+        if ((y - 1) > 0 && obj->distMap[x][y - 1] > 0 && obj->distMap[x][y - 1] <= bestDist) {
             bestDist = obj->distMap[x][y - 1];
-            dir = Y_NEG; 
+            dir = MapExplorationDir::Y_NEG; 
         }
 
         // Check for LEFT node
-        if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0 && obj->distMap[x + 1][y] <= bestDist) {
+        if ((x + 1) < MAP_SIZE - 1 && obj->distMap[x + 1][y] > 0 && obj->distMap[x + 1][y] <= bestDist) {
             bestDist = obj->distMap[x + 1][y];
-            dir = X_POS; 
+            dir = MapExplorationDir::X_POS; 
         }
 
         // Check for BACK node
-        if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0 && obj->distMap[x][y + 1] <= bestDist) {
+        if ((y + 1) < MAP_SIZE - 1 && obj->distMap[x][y + 1] > 0 && obj->distMap[x][y + 1] <= bestDist) {
             bestDist = obj->distMap[x][y + 1];
-            dir = Y_POS; 
+            dir = MapExplorationDir::Y_POS; 
         }
 
         // Check for RIGHT node
-        if ((x - 1) > -1 && obj->distMap[x - 1][y] > 0 && obj->distMap[x - 1][y] <= bestDist) {
+        if ((x - 1) > 0 && obj->distMap[x - 1][y] > 0 && obj->distMap[x - 1][y] <= bestDist) {
             bestDist = obj->distMap[x - 1][y];
-            dir = X_NEG; 
+            dir = MapExplorationDir::X_NEG; 
         }
         
         // We make sure not to hit a wall (doen't work sometimes)
-        int danger = 9;
-        if (y_pos < danger && y_pos != -2) return Y_NEG;
-        if (x_neg < danger && x_neg != -2) return X_POS;
-        if (y_neg < danger && y_neg != -2) return Y_POS;
-        if (x_pos < danger && x_pos != -2) return X_NEG;
+        int minimalDist = 9;
+        if (y_pos < minimalDist && y_pos != -2) return Y_NEG;
+        if (x_neg < minimalDist && x_neg != -2) return X_POS;
+        if (y_neg < minimalDist && y_neg != -2) return Y_POS;
+        if (x_pos < minimalDist && x_pos != -2) return X_NEG;
 
         // We make sure we aren't in a wall
-        if (obj->distMap[x][y] < 1) {
+        /*if (obj->distMap[x][y] < 1) {
             if((y - 1) > -1 && obj->distMap[x][y - 1] > 0)       return Y_NEG;
             if((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0) return X_POS;
             if((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0) return Y_POS;
             if((x - 1) > -1 && obj->distMap[x - 1][y] > 0)       return X_NEG;
-        } 
+        } */
     }
     return dir;
 }

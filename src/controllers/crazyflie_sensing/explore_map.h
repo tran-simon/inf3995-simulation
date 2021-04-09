@@ -104,7 +104,7 @@ typedef struct _ExploreMap {
     void (*Construct) (struct _ExploreMap *obj, int initX, int initY);
     void (*Move) (struct _ExploreMap *obj, int x, int y);
     int (*AddData) (struct _ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
-    MapExplorationDir (*GetBestDir) (struct _ExploreMap *obj);
+    MapExplorationDir (*GetBestDir) (struct _ExploreMap *obj, MapExplorationDir currDir);
 
     /**
     * @brief This function decides, based on the current location in the map, the best direction
@@ -128,7 +128,7 @@ typedef struct _ExploreMap {
 extern void mConstructor (ExploreMap *obj, int initX, int initY);
 extern void mMove (ExploreMap *obj, int x, int y);
 extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);
-extern MapExplorationDir mGetBestDir (ExploreMap *obj);
+extern MapExplorationDir mGetBestDir (ExploreMap *obj, MapExplorationDir currDir);
 
 
 extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg);

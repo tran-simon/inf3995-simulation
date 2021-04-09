@@ -69,13 +69,13 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    m_pcRNG = CRandom::CreateRNG("argos");
    m_cState = CfState::STATE_START;
    m_uiCurrentStep = 0;
-   isReturning = false;
    Reset();
 
    /* Initialise the map */
    CVector3 cPos = m_pcPos->GetReading().Position;
    ExploreMapNew(&map);
    map.Construct(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
+   printMap();
 
    /* Initialise the current direction */
    m_cDir = GetBestDir();
@@ -198,12 +198,14 @@ void CCrazyflieSensing::ControlStep() {
       ++m_uiCurrentStep;
       // Look battery level
       sBatRead = m_pcBattery->GetReading();
+      LOG << "Battery: "<< sBatRead.AvailableCharge << std::endl;
 
       char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);   
 
       if (currentCommand == 's') {
          TakeOff();
-      } else if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l')) { 
+      } 
+      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && m_cState != STATE_GO_TO_BASE) { 
          GoToBase();
       }
 
@@ -298,20 +300,20 @@ void CCrazyflieSensing::Explore() {
                   static_cast<int>(m_cDist[3]));/* right distance in cm */
       
       /* If the drone is too close to an obstacle, move away */
-      
       Real minimalDist = 120;
       if (m_cDist[0] < minimalDist && m_cDist[0] != -2) { MoveBack(c_z_angle, 7.0);}
       if (m_cDist[1] < minimalDist && m_cDist[1] != -2) { MoveRight(c_z_angle, 7.0);}
       if (m_cDist[2] < minimalDist && m_cDist[2] != -2) { MoveForward(c_z_angle, 7.0);}
       if (m_cDist[3] < minimalDist && m_cDist[3] != -2) { MoveLeft(c_z_angle, 7.0);}
       
-      /* If there is an obstacle in the direction of the drone, choose another direction */
+      /* If there is an obstacle in the direction of the drone, choose another direction 
       if (m_cDir != CfDir::STOP && m_cDist[m_cDir] < 75 && m_cDist[m_cDir] != -2) {
          CVector3& stopCPos = StopMvmt();
          stopCPos = cPos;
          m_cDir = CfDir::STOP;
          return;
-      }
+      }*/
+      m_cDir = GetBestDir();
 
       /* Move in the direction of exploration */
       switch (m_cDir) {
@@ -339,14 +341,18 @@ void CCrazyflieSensing::Explore() {
 }
 
 void CCrazyflieSensing::printMap() {
-   std::ofstream MyFile("map"+GetId()+".txt");
+   std::ofstream MyFile("distMap"+GetId()+".txt");
+   std::ofstream MyFile2("map"+GetId()+".txt");
    for (unsigned int i = 0; i < 50; i++) {
       for (unsigned int j = 0; j < 50; j++) {
          MyFile << map.distMap[i][j] << " ";
+         MyFile2 << map.map[i][j] << " ";
       }
       MyFile << std::endl;
+      MyFile2 << std::endl;
    }
    MyFile.close();
+   MyFile2.close();
 }
 
 void CCrazyflieSensing::GoToBase() {
@@ -357,28 +363,8 @@ void CCrazyflieSensing::GoToBase() {
          map.Move(&map, (int) ((cpos.GetX() + 5) * 100), (int) ((cpos.GetY() + 5) * 100));
 
          // We build the flowmap (distMap) only once
-         printMap();
          map.BuildFlow(&map);
-
-         /*====Print distances map====*/
-         LOG << "{" << std::endl;
-         for (int i = 0; i < MAP_SIZE; i++) {
-            LOG << "{";
-            for (int j = 0; j < MAP_SIZE; j++) {
-               if (map.distMap[i][j] < 0) {
-                  LOG << "000,";
-               } else if (map.distMap[i][j] > 100) {
-                  LOG << map.distMap[i][j] << ",";
-               } else if (map.distMap[i][j] >= 10) {
-                  LOG << "0" << map.distMap[i][j] << ",";
-               } else {
-                  LOG << "00" << map.distMap[i][j] << ",";
-               }
-            }
-            LOG << "}," << std::endl;
-         }
-         LOG << "}" << std::endl;
-         /*============================*/
+         printMap();
 
          m_cState = STATE_GO_TO_BASE;
       }
@@ -403,7 +389,6 @@ void CCrazyflieSensing::GoToBase() {
       // Are we at destination? If so we land.
       if (map.currX == map.mBase.x && map.currY == map.mBase.y) {
          Land();
-         isReturning = true;
       }
 
       MapExplorationDir nextDir = map.NextNode(&map,  
@@ -436,7 +421,6 @@ void CCrazyflieSensing::Land() {
       if ((Abs(cpos.GetZ()) > 0.01f)) {
          cpos.SetZ(0.0f);
       } else {
-         isReturning = false;
          LOG << "MISSION COMPLETE" << std::endl;
       }
    } catch (std::exception e) {
@@ -451,16 +435,17 @@ void CCrazyflieSensing::Land() {
 /****************************************/
 
 enum CCrazyflieSensing::CfDir CCrazyflieSensing::GetBestDir() {
-   MapExplorationDir mapExplorationDir = map.GetBestDir(&map);
-   /* Convert the map direction to the simulated drone direction */
-   switch (mapExplorationDir) {
-      case MapExplorationDir::Y_NEG: LOG << "FRONT\n"; return CfDir::FRONT; 
-      case MapExplorationDir::X_POS: LOG << "LEFT\n";  return CfDir::LEFT; 
-      case MapExplorationDir::Y_POS: LOG << "BACK\n";  return CfDir::BACK; 
-      case MapExplorationDir::X_NEG: LOG << "RIGHT\n"; return CfDir::RIGHT;
-      case MapExplorationDir::NONE:  LOG << "STOP\n";  return CfDir::STOP;  
+   MapExplorationDir mapExplorationDir = map.GetBestDir(&map, (MapExplorationDir) m_cDir);
+   /* Convert the map direction to the simulated drone direction*/
+   switch ((CfDir) mapExplorationDir) {
+      case CfDir::FRONT: LOG << "FRONT\n";  break;
+      case CfDir::LEFT : LOG << "LEFT\n";  break;
+      case CfDir::BACK : LOG << "BACK\n";  break;
+      case CfDir::RIGHT: LOG << "RIGHT\n"; break;
+      case CfDir::STOP : LOG << "STOP\n";   break;
       default: break;
-   }
+   } 
+   return (CfDir) mapExplorationDir;
 }
 
 /****************************************/

@@ -73,11 +73,11 @@ public:
    };
 
    enum CfDir {
-      FRONT,
-      LEFT,
-      BACK,
-      RIGHT,
-      STOP
+      FRONT = MapExplorationDir::Y_NEG,
+      LEFT = MapExplorationDir::X_POS,
+      BACK = MapExplorationDir::Y_POS,
+      RIGHT = MapExplorationDir::X_NEG,
+      STOP = MapExplorationDir::NONE
    };
 
    /* Gives the distance at which drones returns -2 as mesured distance */
@@ -264,8 +264,6 @@ private:
 
    /* Current step */
    uint m_uiCurrentStep;
-
-   bool isReturning; 
 
    CfDir m_cDir;
    ExploreMap map;
