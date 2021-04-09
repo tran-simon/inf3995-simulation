@@ -3,22 +3,24 @@
 
 #include "node.h"
 #include <stddef.h>
+
 /**
  * @brief NodeArray is a dynamicaly allocated array of Nodes.
- */
+**/
 typedef struct _NodeArray {
     struct Node *array;
     size_t used;
     size_t size;
 
     /* Member Functions */
+
     /**
     * @brief Initialize a NodeArray type object.
     * 
     * @param a : reference to self. Give current NodeArray as a reference parameter.
     * @param initialSize : number of NodeArray elements expected to be stored in the array.
     * If the array is full, the size will double automaticatily in order to prevent overflow.
-    */
+    **/
     void (*Init) (struct _NodeArray *a, size_t initialSize);
 
     /**
@@ -27,7 +29,7 @@ typedef struct _NodeArray {
     * 
     * @param a reference to self. Give current NodeArray as a reference parameter.
     * @param element The Node type object to add in the array.
-    */
+    **/
     void (*Insert) (struct _NodeArray *a, Node element);
 
     /**
@@ -35,24 +37,24 @@ typedef struct _NodeArray {
     * order to use the array properly.
     * 
     * @param a reference to self. Give current NodeArray as a reference parameter.
-    */
+    **/
     void (*Free) (struct _NodeArray *a);
 } NodeArray;
 
 /* Global Member Functions */
-
 
 extern void mInit(NodeArray *a, size_t initialSize);
 extern void mInsert(NodeArray *a, Node element);
 extern void mFree(NodeArray *a); 
 
 /* Global Functions */
+
 /**
  * @brief Construct a NodeArray type object. This needs to be called in order to use internal function
  * for a desired object.
  * 
  * @param a reference to self. Give new NodeArray as a reference parameter.
- */
+**/
 extern void NodeArrayNew(NodeArray *a);
 
 #endif

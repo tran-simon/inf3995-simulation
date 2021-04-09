@@ -1,6 +1,7 @@
 #include "node_array.h"
 #include <argos3/core/utility/math/general.h>
 #include <stdlib.h>
+
 extern void NodeArrayNew(NodeArray *a) {
     a->Init   = mInit;
     a->Insert = mInsert;

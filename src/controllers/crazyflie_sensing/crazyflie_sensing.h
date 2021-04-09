@@ -11,9 +11,6 @@
 #ifndef CRAZYFLIE_SENSING_H
 #define CRAZYFLIE_SENSING_H
 
-/*
- * Include some necessary headers.
- */
 /* Definition of the CCI_Controller class. */
 #include <argos3/core/control_interface/ci_controller.h>
 /* Definition of the crazyflie distance sensor */
@@ -36,25 +33,30 @@
 #include "node_array.c"
 #include <iostream>
 #include <fstream>
-/*
+
+/**
  * All the ARGoS stuff in the 'argos' namespace.
  * With this statement, you save typing argos:: every time.
- */
+**/
 using namespace argos;
 
-/*
+/**
  * A controller is simply an implementation of the CCI_Controller class.
- */
+**/
 class CCrazyflieSensing : public CCI_Controller {
 public:
+   /****************************************/
+   /*            Enumerations              */
+   /****************************************/
+
    /**
-    * Enum that represents mission states.
+    * @brief Enum that represents mission states.
     * 
-    * STATE_START      = 0
-    * STATE_TAKE_OFF   = 1
-    * STATE_EXPLORE    = 2
-    * STATE_GO_TO_BASE = 3
-    * STATE_LAND       = 4
+    * @param STATE_START      = 0
+    * @param STATE_TAKE_OFF   = 1
+    * @param STATE_EXPLORE    = 2
+    * @param STATE_GO_TO_BASE = 3
+    * @param STATE_LAND       = 4
    **/
    enum CfState {
       STATE_START,
@@ -64,6 +66,15 @@ public:
       STATE_LAND
    };
 
+   /**
+    * @brief Enum that represent drone gettable values.
+    * 
+    * @param STATE    = 0
+    * @param BATTERY  = 1
+    * @param VELOCITY = 2
+    * @param POSITION = 3
+    * @param POINT    = 4
+    */
    enum CfValue {
       STATE,
       BATTERY,
@@ -72,23 +83,22 @@ public:
       POINT
    };
 
+   /**
+    * @brief Enum that represent drone direction of mouvement.
+    * 
+    * @param FRONT = Y_NEG = 3
+    * @param LEFT  = X_POS = 0
+    * @param BACK  = Y_POS = 2
+    * @param RIGHT = X_NEG = 1
+    * @param STOP  = NONE  = 4
+    */
    enum CfDir {
-      FRONT,
-      LEFT,
-      BACK,
-      RIGHT,
-      STOP
+      FRONT = MapExplorationDir::Y_NEG,
+      LEFT  = MapExplorationDir::X_POS,
+      BACK  = MapExplorationDir::Y_POS,
+      RIGHT = MapExplorationDir::X_NEG,
+      STOP  = MapExplorationDir::NONE
    };
-
-   /* Gives the distance at which drones returns -2 as mesured distance */
-   static uint const MAX_VIEW_DIST = 200;
-
-   /* Arbitrary distance value from which the drone can 
-      no longer approach an object*/
-   static uint const DETECTION_THRESHOLD = 45U;
-
-   /* Arbitrary number of steps between each mobility evaluation */
-   static uint const MOBILITY_DELAY = 30U;
 
    /* Class constructor. */
    CCrazyflieSensing();
@@ -96,117 +106,152 @@ public:
    /* Class destructor. */
    virtual ~CCrazyflieSensing() {}
 
-   /*
+   /**
     * This function initializes the controller.
     * The 't_node' variable points to the <parameters> section in the XML
     * file in the <controllers><footbot_foraging_controller> section.
-    */
+   **/
    virtual void Init(TConfigurationNode& t_node);
 
-   /*** 
-    * This function connects to the socket running
-    * on the backend in order to communicate when
-    * to start and land.
-   ***/
-   int ConnectToSocket();
-
-   char ReadCommand(int fd);
-
-   void CreateCommand(int fd, char* message, int value);
-
-   int SendCommand(int fd, char* message);
-
-   /*
+   /**
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
-    */
+   **/
    virtual void ControlStep();
+
+   /****************************************/
+   /*        Connectivity functions        */
+   /****************************************/
+   /** 
+    * @brief This function connects to the socket running on the backend in order 
+    * to communicate when to start and land.
+    * @return Returns an int value corresponding to the socket or -1 if an error has occured;
+   **/
+   int ConnectToSocket();
+
+   /**
+    * @brief ???
+    * 
+    * @param fd ???
+    * @return char ???
+   **/
+   char ReadCommand(int fd);
+
+   /**
+    * @brief Create a Command object ???
+    * 
+    * @param fd ???
+    * @param message ???
+    * @param value ???
+   **/
+   void CreateCommand(int fd, char* message, int value);
+
+   /**
+    * @brief ???
+    * 
+    * @param fd ???
+    * @param message ???
+    * @return int ???
+   **/
+   int SendCommand(int fd, char* message);
 
    /****************************************/
    /*       Mission States functions       */
    /****************************************/
    
-   void TakeOff();
-   void Explore();
-   void GoToBase();
-   void Land();
-   
-   
-   /*
+   /**
     * This function lifts the drone from the ground
+   **/
+   void TakeOff();
 
-    This function makes the drone go on an adventure. Will he survive
+   /**
+    * This function makes the drone go on an adventure. Will he survive
     * the long and dangerous journey?
+   **/
+   void Explore();
 
-    This function makes the drone go back to its take off position
-
-    This function returns the drone to the ground
-    */   
+   /**
+    * This function makes the drone go back to its take off position
+   **/
+   void GoToBase();
+   
+   /**
+    * This function returns the drone to the ground
+   **/
+   void Land();   
 
    /****************************************/
    /*           Movements functions        */
    /****************************************/
 
-   /*** 
-    * This function return the best direction for the drone
+   /** 
+    * @brief This function return the best direction for the drone
     * @return cfDir:CfDir the best direction to explore
-   ***/
+    **/
    enum CfDir GetBestDir();
 
    /*** 
-    * This function makes the drone moves forward
-    * @param c_z_angle Angle at which the drone is. 
+    * @brief This function makes the drone moves forward
+    * @param c_z_angle Angle at which the drone is.
+    * @param dist if given a non-zero value, determines the distance
+    * the drone is supposed to travel from is current location in a 
+    * fixed amount of time.
    ***/
    void MoveForward(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves to the left
-    * @param c_z_angle Angle at which the drone is. 
+    * @brief This function makes the drone moves to the left
+    * @param c_z_angle Angle at which the drone is.
+    * @param dist if given a non-zero value, determines the distance
+    * the drone is supposed to travel from is current location in a 
+    * fixed amount of time. 
    ***/
    void MoveLeft(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves back
+    * @brief This function makes the drone moves back
     * @param c_z_angle Angle at which the drone is. 
+    * @param dist if given a non-zero value, determines the distance
+    * the drone is supposed to travel from is current location in a 
+    * fixed amount of time.
    ***/
    void MoveBack(CRadians c_z_angle, float dist = 0);
 
    /*** 
-    * This function makes the drone moves to the right
-    * @param c_z_angle Angle at which the drone is. 
+    * @brief This function makes the drone moves to the right
+    * @param c_z_angle Angle at which the drone is.
+    * @param dist if given a non-zero value, determines the distance
+    * the drone is supposed to travel from is current location in a 
+    * fixed amount of time.
    ***/
    void MoveRight(CRadians c_z_angle, float dist = 0);
 
-   /*** 
+   /** 
     * This function makes the drone stop moving
     * by setting the desired pos to the current pos 
-   ***/
+   **/
    CVector3& StopMvmt();
 
-   /*** 
-    * This function makes the drone rotate
-    * @param angle Angle at which the drone rotates. 
-   ***/
-   void Rotate(CRadians angle);
-
-   /*
+   /**
     * This function resets the controller to its state right after the
     * Init().
     * It is called when you press the reset button in the GUI.
-    */
+   **/
    virtual void Reset();
 
-   /*
+   /**
     * Called to cleanup what done by Init() when the experiment finishes.
     * In this example controller there is no need for clean anything up,
     * so the function could have been omitted. It's here just for
     * completeness.
-    */
+   **/
    virtual void Destroy() {}
    
-   
-
+   /**
+    * @brief Debug function. Write the content of LOG into a file.
+   **/
    void printMap();
+
 private:
 
    /* Pointer to the crazyflie distance sensor */
@@ -236,38 +281,24 @@ private:
    /* Current and previous state of the drone */
    CfState m_cState;
 
+   /* Current drone direction of mouvement */
+   CfDir m_cDir;
+
    /* Current state of the battery */
    CCI_BatterySensor::SReading sBatRead;
    
    CRadians m_desiredAngle;
 
-   /***
-   *  Current drone to object distance
-   *  m_cDist[0]: front distance
-   *  m_cDist[1]: left distance
-   *  m_cDist[2]: back distance
-   *  m_cDist[3]: right distance
-   ***/
+   /**
+   *  Current drone to object distance in cm
+   *  - m_cDist[0]: front distance
+   *  - m_cDist[1]: left distance
+   *  - m_cDist[2]: back distance
+   *  - m_cDist[3]: right distance
+   **/
    Real m_cDist[4];
    
-   /* Current drone to object distance in the front direction */
-   Real frontDist;
-
-   /* Current drone to object distance in the left direction */
-   Real leftDist;
-
-   /* Current drone to object distance in the back direction */
-   Real backDist;
-
-   /* Current drone to object distance in the right direction */
-   Real rightDist;
-
-   /* Current step */
-   uint m_uiCurrentStep;
-
-   bool isReturning; 
-
-   CfDir m_cDir;
+   /* Internal map of the arena */
    ExploreMap map;
 };
 
