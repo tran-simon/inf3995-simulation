@@ -183,6 +183,7 @@ extern MapExplorationDir mGetBestDir (ExploreMap *obj, MapExplorationDir currDir
 }
 
 extern void mBuildFlowMap(ExploreMap *obj) {
+    argos::LOG << "mBuildFlowMap" << std::endl;
     // Here we add the first Node corresponding to base position
     obj->newNodes->Insert(obj->newNodes, obj->mBase);
     obj->distMap[obj->mBase.x][obj->mBase.y] = obj->mBase.distance;
@@ -289,10 +290,10 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 
 extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg) {
     /* Local variable that represent the next direction of movement */
-    MapExplorationDir dir = NONE;
+    MapExplorationDir dir = MapExplorationDir::NONE;
     int x = obj->currX;
     int y = obj->currY;
-    int bestDist = obj->distMap[x][y];
+    int bestDist = (obj->distMap[x][y] > 0) ? obj->distMap[x][y] : 2500;
     
     // We make sure we are not already at destination
     if (!(x == obj->mBase.x && y == obj->mBase.y)) {
@@ -300,25 +301,25 @@ extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_
         // Check for FRONT node
         if ((y - 1) > 0 && obj->distMap[x][y - 1] > 0 && obj->distMap[x][y - 1] <= bestDist) {
             bestDist = obj->distMap[x][y - 1];
-            dir = Y_NEG; 
+            dir = MapExplorationDir::Y_NEG; 
         }
 
         // Check for LEFT node
         if ((x + 1) < MAP_SIZE - 1 && obj->distMap[x + 1][y] > 0 && obj->distMap[x + 1][y] <= bestDist) {
             bestDist = obj->distMap[x + 1][y];
-            dir = X_POS; 
+            dir = MapExplorationDir::X_POS; 
         }
 
         // Check for BACK node
         if ((y + 1) < MAP_SIZE - 1 && obj->distMap[x][y + 1] > 0 && obj->distMap[x][y + 1] <= bestDist) {
             bestDist = obj->distMap[x][y + 1];
-            dir = Y_POS; 
+            dir = MapExplorationDir::Y_POS; 
         }
 
         // Check for RIGHT node
         if ((x - 1) > 0 && obj->distMap[x - 1][y] > 0 && obj->distMap[x - 1][y] <= bestDist) {
             bestDist = obj->distMap[x - 1][y];
-            dir = X_NEG; 
+            dir = MapExplorationDir::X_NEG; 
         }
         
         // We make sure not to hit a wall

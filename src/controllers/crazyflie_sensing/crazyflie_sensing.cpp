@@ -76,6 +76,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    CVector3 cPos = m_pcPos->GetReading().Position;
    ExploreMapNew(&map);
    map.Construct(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
+   printMap();
 
    /* Initialise the current direction */
    m_cDir = GetBestDir();
@@ -199,13 +200,14 @@ void CCrazyflieSensing::ControlStep() {
    try {
       // Look battery level
       sBatRead = m_pcBattery->GetReading();
+      LOG << "Battery: "<< sBatRead.AvailableCharge << std::endl;
 
       char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);   
 
       if (currentCommand == 's') {
          TakeOff();
       } 
-      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l')) { 
+      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && m_cState != STATE_GO_TO_BASE) { 
          GoToBase();
       }
 
@@ -338,14 +340,18 @@ void CCrazyflieSensing::Explore() {
 }
 
 void CCrazyflieSensing::printMap() {
-   std::ofstream MyFile("map"+GetId()+".txt");
+   std::ofstream MyFile("distMap"+GetId()+".txt");
+   std::ofstream MyFile2("map"+GetId()+".txt");
    for (unsigned int i = 0; i < 50; i++) {
       for (unsigned int j = 0; j < 50; j++) {
          MyFile << map.distMap[i][j] << " ";
+         MyFile2 << map.map[i][j] << " ";
       }
       MyFile << std::endl;
+      MyFile2 << std::endl;
    }
    MyFile.close();
+   MyFile2.close();
 }
 
 void CCrazyflieSensing::GoToBase() {

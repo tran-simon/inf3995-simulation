@@ -119,6 +119,7 @@ extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_
 extern void mBuildFlowMap(ExploreMap *obj);
 
 /* Global Functions */
+
 /**
  * @brief Construct a ExploreMap type object. This needs to be called in order to use internal functions
  * for a desired object.
