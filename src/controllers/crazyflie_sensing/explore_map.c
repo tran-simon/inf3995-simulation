@@ -17,7 +17,9 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
 
     obj->currX = (int) initX / obj->mapResolutionCM;
     obj->currY = (int) initY / obj->mapResolutionCM;
-
+    
+    obj->mBase = {obj->currX,obj->currY,1,1};
+    
     obj->initX = obj->currX;
     obj->initY = obj->currY;
 
@@ -37,9 +39,6 @@ extern void mConstructor (ExploreMap *obj, int initX, int initY) {
     obj->discovered =(NodeArray *)malloc(sizeof(NodeArray));
     NodeArrayNew(obj->discovered);
     obj->discovered->Init(obj->discovered, 16);
-
-    /*TODO: add base pos estimation*/
-    obj->mBase = {48,48,1,1};
 }
 
 /* Move the drone on the map */
@@ -55,7 +54,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
     
     /* Fill the map with y_neg */
     nEmpty = (y_neg != -2)? y_neg / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currY; i >= obj->currY - nEmpty && i > 0; i--){
+    for (i = obj->currY; i >= obj->currY - nEmpty && i > 0; i--) {
         obj->map[obj->currX][i] = 1;
         if (i > obj->currY - nEmpty) { obj->distMap[obj->currX][i] = 0; }
     }
@@ -65,7 +64,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with x_pos */
     nEmpty = (x_pos != -2)? x_pos / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currX; i <= obj->currX + nEmpty && i < MAP_SIZE - 1; i++){
+    for (i = obj->currX; i <= obj->currX + nEmpty && i < MAP_SIZE - 1; i++) {
         obj->map[i][obj->currY] = 1;  
         if (i < obj->currX + nEmpty) { obj->distMap[i][obj->currY] = 0; }  
     }
@@ -75,7 +74,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with y_pos */
     nEmpty = (y_pos != -2)? y_pos / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currY; i <= obj->currY + nEmpty && i < MAP_SIZE - 1; i++){
+    for (i = obj->currY; i <= obj->currY + nEmpty && i < MAP_SIZE - 1; i++) {
         obj->map[obj->currX][i] = 1;
         if (i < obj->currY + nEmpty) { obj->distMap[obj->currX][i] = 0; }
     }
@@ -85,7 +84,7 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
 
     /* Fill the map with x_neg */
     nEmpty = (x_neg != -2)? x_neg / obj->mapResolutionCM : 200 / obj->mapResolutionCM;
-    for (i = obj->currX; i >= obj->currX - nEmpty && i > 0; i--){
+    for (i = obj->currX; i >= obj->currX - nEmpty && i > 0; i--) {
         obj->map[i][obj->currY] = 1;
         if (i > obj->currX - nEmpty) { obj->distMap[i][obj->currY] = 0; }
     }
@@ -96,6 +95,16 @@ extern int mAddData (ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg
     return nEmpty;
 }
 
+/**
+ * @brief Returns the minimal int value between to integer a and b
+**/
+int min(int a, int b) {
+    return (a < b) ? a:b;
+}
+
+/**
+ * @brief Returns the maximum int value between to integer a and b
+**/
 int max(int a, int b) {
     return (a >= b)? a: b;
 }
@@ -183,19 +192,25 @@ extern MapExplorationDir mGetBestDir (ExploreMap *obj, MapExplorationDir currDir
 }
 
 extern void mBuildFlowMap(ExploreMap *obj) {
-    argos::LOG << "mBuildFlowMap" << std::endl;
+    argos::LOG << "Building distances map ..." << std::endl;
+    
     // Here we add the first Node corresponding to base position
     obj->newNodes->Insert(obj->newNodes, obj->mBase);
     obj->distMap[obj->mBase.x][obj->mBase.y] = obj->mBase.distance;
 
     // We verify that the drone isn't out of the map
-    if(obj->currX > -1 && obj->currX < MAP_SIZE && obj->currY > -1 && obj->currY < MAP_SIZE) {
+    if (obj->currX > -1 && obj->currX < MAP_SIZE && obj->currY > -1 && obj->currY < MAP_SIZE) {
+        
         // We run the Wave Propagation algorithm until a clear path is found between the drone
         // and the current base.
 
+        // Specifies if the algorithm should stop running. y => yes, n => no.
         char stop = 'n';
-        while(stop == 'n') {
+
+        while (stop == 'n') {
+            // Number of newly discovered nodes.
             int newNodeCount = 0;
+
             for (size_t i = 0; i < obj->newNodes->used; i++) {
 
                 int x = obj->newNodes->array[i].x;
@@ -204,6 +219,7 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 
                 // We check if the last added node was the drone position
                 if (x == obj->currX && y == obj->currY) {
+                    argos::LOG << "Map successfully built! Return to base." << std::endl;
                     stop = 'y';
                     break;
                 } 
@@ -213,12 +229,12 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 
                 // Check for FRONT node
                 if ((y - 1) > -1 && obj->distMap[x][y - 1] > -1 && obj->distMap[x][y - 1] != 1) {
-                    if(obj->distMap[x][y - 1] == 0) {
+                    if (obj->distMap[x][y - 1] == 0) {
                         // A new node with a 0 distance has been discovered
                         obj->distMap[x][y - 1] = dist + 1;
                         newNodeCount++;
                     } else {
-                        obj->distMap[x][y - 1] = argos::Min(obj->distMap[x][y - 1], dist + 1);
+                        obj->distMap[x][y - 1] = min(obj->distMap[x][y - 1], dist + 1);
                     }
                     // We add the newly discovered node to the discovered array
                     obj->discovered->Insert(obj->discovered, {x, (y - 1), obj->distMap[x][y - 1], 1});
@@ -226,12 +242,12 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 
                 // Check for LEFT node
                 if ((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > -1 && obj->distMap[x + 1][y] != 1) {
-                    if(obj->distMap[x + 1][y] == 0) {
+                    if (obj->distMap[x + 1][y] == 0) {
                         // A new node with a 0 distance has been discovered
                         obj->distMap[x + 1][y] = dist + 1;
                         newNodeCount++;
                     } else {
-                        obj->distMap[x + 1][y] = argos::Min(obj->distMap[x + 1][y], dist + 1);
+                        obj->distMap[x + 1][y] = min(obj->distMap[x + 1][y], dist + 1);
                     }
                     // We add the newly discovered node to the discovered array
                     obj->discovered->Insert(obj->discovered, {(x + 1), y, obj->distMap[x + 1][y], 1});
@@ -239,12 +255,12 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 
                 // Check for BACK node
                 if ((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > -1 && obj->distMap[x][y + 1] != 1) {
-                    if(obj->distMap[x][y + 1] == 0) {
+                    if (obj->distMap[x][y + 1] == 0) {
                         // A new node with a 0 distance has been discovered
                         obj->distMap[x][y + 1] = dist + 1;
                         newNodeCount++;
                     } else {
-                        obj->distMap[x][y + 1] = argos::Min(obj->distMap[x][y + 1], dist + 1);
+                        obj->distMap[x][y + 1] = min(obj->distMap[x][y + 1], dist + 1);
                     }
                     // We add the newly discovered node to the discovered array
                     obj->discovered->Insert(obj->discovered, {x, (y + 1), obj->distMap[x][y + 1], 1});
@@ -252,29 +268,30 @@ extern void mBuildFlowMap(ExploreMap *obj) {
 
                 // Check for RIGHT node
                 if ((x - 1) > -1 && obj->distMap[x - 1][y] > -1 && obj->distMap[x - 1][y] != 1) {
-                    if(obj->distMap[x - 1][y] == 0) {
+                    if (obj->distMap[x - 1][y] == 0) {
                         // A new node with a 0 distance has been discovered
                         obj->distMap[x - 1][y] = dist + 1;
                         newNodeCount++;
                     } else {
-                        obj->distMap[x - 1][y] = argos::Min(obj->distMap[x - 1][y], dist + 1);
+                        obj->distMap[x - 1][y] = min(obj->distMap[x - 1][y], dist + 1);
                     }
                     // We add the newly discovered node to the discovered array
                     obj->discovered->Insert(obj->discovered, {(x - 1), y, obj->distMap[x - 1][y], 1});
                 }
             }
+
             // Check to see if no newly discovered nodes have been found. Normally at least one node must
             // have a distance value of 0 for the algorithm to continue.
-            if(newNodeCount == 0) {
-                argos::LOG << "No new node has been discovered. Search closed." << std::endl;
+            if (newNodeCount == 0) {
+                argos::LOG << "Search closed." << std::endl;
                 stop = 'y';
             }
-            if(stop == 'n') {
+            if (stop == 'n') {
                 // We empty the current newNodes array and add the newly discovered ones to it.
                 obj->newNodes->Free(obj->newNodes);
                 obj->newNodes->Init(obj->newNodes, 16);
 
-                for (int i = 0; i < obj->discovered->used; i++){
+                for (int i = 0; i < obj->discovered->used; i++) {
                     obj->newNodes->Insert(obj->newNodes, obj->discovered->array[i]);
                 }
 
@@ -283,13 +300,10 @@ extern void mBuildFlowMap(ExploreMap *obj) {
             }
         }
     }
-    // We free the allocated memory (cause issues at runtime)
-    // obj->newNodes->Free(obj->newNodes);
-    // obj->discovered->Free(obj->discovered);
 }
 
 extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_pos, int x_neg) {
-    /* Local variable that represent the next direction of movement */
+    // Local variable that represent the next direction of movement.
     MapExplorationDir dir = MapExplorationDir::NONE;
     int x = obj->currX;
     int y = obj->currY;
@@ -328,14 +342,6 @@ extern MapExplorationDir mNextNode(ExploreMap *obj, int y_neg, int x_pos, int y_
         if (x_neg < minimalDist && x_neg != -2) return X_POS;
         if (y_neg < minimalDist && y_neg != -2) return Y_POS;
         if (x_pos < minimalDist && x_pos != -2) return X_NEG;
-
-        // We make sure we aren't in a wall
-        /*if (obj->distMap[x][y] < 1) {
-            if((y - 1) > -1 && obj->distMap[x][y - 1] > 0)       return Y_NEG;
-            if((x + 1) < MAP_SIZE && obj->distMap[x + 1][y] > 0) return X_POS;
-            if((y + 1) < MAP_SIZE && obj->distMap[x][y + 1] > 0) return Y_POS;
-            if((x - 1) > -1 && obj->distMap[x - 1][y] > 0)       return X_NEG;
-        } */
     }
     return dir;
 }

@@ -21,7 +21,7 @@
 
 static bool waitingForStart = true;
 static int firstTime = 0; 
-static float velocity = 0.5;
+static float velocity = 0.3;
 static int fd[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 static float posX[10];
 static float posY[10];
@@ -43,9 +43,9 @@ CCrazyflieSensing::CCrazyflieSensing() :
 
 void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    try {
-      /*
+      /**
        * Initialize sensors/actuators
-       */
+      **/
       m_pcDistance   = GetSensor  <CCI_CrazyflieDistanceScannerSensor>("crazyflie_distance_scanner");
       m_pcPropellers = GetActuator  <CCI_QuadRotorPositionActuator>("quadrotor_position");
       
@@ -59,9 +59,9 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
       try {
          m_pcBattery = GetSensor<CCI_BatterySensor>("battery");
       }
-      catch(CARGoSException& ex) {}
+      catch (CARGoSException& ex) {}
    }
-   catch(CARGoSException& ex) {
+   catch (CARGoSException& ex) {
       THROW_ARGOSEXCEPTION_NESTED("Error initializing the crazyflie sensing controller for robot \"" << GetId() << "\"", ex);
    }
    
@@ -76,7 +76,6 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    CVector3 cPos = m_pcPos->GetReading().Position;
    ExploreMapNew(&map);
    map.Construct(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
-   printMap();
 
    /* Initialise the current direction */
    m_cDir = GetBestDir();
@@ -107,15 +106,13 @@ int CCrazyflieSensing::ConnectToSocket() {
    if (inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr) <= 0) { 
       LOG << "Invalid address/ Address not supported" << std::endl; 
       return -1; 
-   } 
+   }
    
    if (connect(sock, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) { 
       LOG << "Connection Failed" << std::endl; 
       return -1; 
    }
-   //sprintf(mess, "%d", sock);
-   //send(sock, mess, strlen(mess), 0);
-   //LOG << "Hello message sent" << std::endl; 
+
    valread = recv(sock, buffer, 1024, MSG_PEEK);
    return (valread > 0) ? sock:-1;
 }
@@ -160,13 +157,11 @@ int CCrazyflieSensing::SendCommand(int sock, char* message) {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   char command;
-   
    while (fd[stoi(GetId().substr(6))] <= 0) {
       fd[stoi(GetId().substr(6))] = ConnectToSocket();
    }
 
-   if (!posX[stoi(GetId().substr(6))] & !posY[stoi(GetId().substr(6))]) {
+   if (!posX[stoi(GetId().substr(6))] * 10 & !posY[stoi(GetId().substr(6))] * 10) {
 
       posX[stoi(GetId().substr(6))] = m_pcPos->GetReading().Position.GetX();
       posY[stoi(GetId().substr(6))] = m_pcPos->GetReading().Position.GetY();
@@ -174,13 +169,13 @@ void CCrazyflieSensing::ControlStep() {
       if (stoi(GetId().substr(6)) != 0) {
          float differenceY = posY[0] - posY[stoi(GetId().substr(6))];
          float newPosY = posY[0] + differenceY;
-         LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
-                                     << " x: " << posX[stoi(GetId().substr(6))] << " y: " 
-                                     << newPosY << std::endl;
+         LOG << "Initial position: " << "id: " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
+                                     << std::endl << "<x: " << posX[stoi(GetId().substr(6))] * 10 
+                                     << std::endl << ", y: " << newPosY * 10 << " >;" << std::endl;
       } else {
-         LOG << "Initial position: " << " id " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
-                                     << " x: " << posX[stoi(GetId().substr(6))] << " y: " 
-                                     << posY[stoi(GetId().substr(6))] << std::endl;
+         LOG << "Initial position: " << "id: " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
+                                     << std::endl << "<x: " << posX[stoi(GetId().substr(6))] * 10
+                                     << ", y: " << posY[stoi(GetId().substr(6))] * 10 << " >;" << std::endl;
       }
    }
 
@@ -193,17 +188,10 @@ void CCrazyflieSensing::ControlStep() {
    char velocityBuffer[1024] = {0};
    strcpy(velocityBuffer, std::to_string(velocity).c_str());
 
-   // CreateCommand(fd[stoi(GetId().substr(6))], stateBuffer, STATE);
-   // CreateCommand(fd[stoi(GetId().substr(6))], batteryBuffer, BATTERY);
-   // CreateCommand(fd[stoi(GetId().substr(6))], velocityBuffer, VELOCITY);
-
    try {
       // Look battery level
       sBatRead = m_pcBattery->GetReading();
-      LOG << "Battery: "<< sBatRead.AvailableCharge << std::endl;
-
       char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);   
-
       if (currentCommand == 's') {
          TakeOff();
       } 
@@ -213,12 +201,12 @@ void CCrazyflieSensing::ControlStep() {
 
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
       auto iterDistRead = sDistRead.begin();
-      if(sDistRead.size() == 4) {
+      if (sDistRead.size() == 4) {
          /* Updates of the distance sensors */
          m_cDist[0] = (iterDistRead++)->second; /* Front distance */
-         m_cDist[1] = (iterDistRead++)->second; /* left distance  */
-         m_cDist[2] = (iterDistRead++)->second; /* back distance  */
-         m_cDist[3] = (iterDistRead)->second;   /* right distance */
+         m_cDist[1] = (iterDistRead++)->second; /* Left distance  */
+         m_cDist[2] = (iterDistRead++)->second; /* Back distance  */
+         m_cDist[3] = (iterDistRead)->second;   /* Right distance */
 
          char posBuffer[1024] = {0};
          strcpy(posBuffer, std::to_string(m_pcPos->GetReading().Position.GetX() - posX[stoi(GetId().substr(6))]).c_str());
@@ -250,7 +238,8 @@ void CCrazyflieSensing::ControlStep() {
             default: break;
          }
       }
-   } catch (std::exception e) {
+   } 
+   catch (std::exception e) {
       LOGERR << "AN EXCEPTION AS OCCURED IN CONTROLSTEP" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
@@ -265,15 +254,15 @@ void CCrazyflieSensing::TakeOff() {
    try {
       CVector3 cPos = m_pcPos->GetReading().Position;
       Real height = 0.3 * stoi(GetId().substr(6)) + 0.3;
-      if(m_cState != STATE_TAKE_OFF) {
+      if (m_cState != STATE_TAKE_OFF) {
          m_cState = STATE_TAKE_OFF;
          cPos.SetZ(height);
          m_pcPropellers->SetAbsolutePosition(cPos);
       } else if (Abs(cPos.GetZ() - height) < 0.1f) {
-         m_cBasePos = m_pcPos->GetReading().Position;
          Explore();
       }
-   } catch (std::exception e){
+   } 
+   catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED IN TAKEOFF" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
@@ -281,7 +270,7 @@ void CCrazyflieSensing::TakeOff() {
 
 void CCrazyflieSensing::Explore() {
     try {
-      if(m_cState != STATE_EXPLORE) {
+      if (m_cState != STATE_EXPLORE) {
          m_cState = STATE_EXPLORE;
       }
 
@@ -306,34 +295,26 @@ void CCrazyflieSensing::Explore() {
       if (m_cDist[2] < minimalDist && m_cDist[2] != -2) { MoveForward(c_z_angle, 7.0);}
       if (m_cDist[3] < minimalDist && m_cDist[3] != -2) { MoveLeft(c_z_angle, 7.0);}
       
-      /* If there is an obstacle in the direction of the drone, choose another direction 
-      if (m_cDir != CfDir::STOP && m_cDist[m_cDir] < 75 && m_cDist[m_cDir] != -2) {
-         CVector3& stopCPos = StopMvmt();
-         stopCPos = cPos;
-         m_cDir = CfDir::STOP;
-         return;
-      }*/
+      /* We get the best direction */
       m_cDir = GetBestDir();
 
       /* Move in the direction of exploration */
       switch (m_cDir) {
-         case CfDir::FRONT: MoveForward(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[0] << std::endl; break;
-         case CfDir::LEFT: MoveLeft(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[1] << std::endl; break;
-         case CfDir::BACK: MoveBack(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[2] << std::endl; break;
-         case CfDir::RIGHT: MoveRight(c_z_angle); break;//LOG << "Curr dist : "<< m_cDist[3] << std::endl; break;
+         case CfDir::FRONT: MoveForward(c_z_angle); break;
+         case CfDir::LEFT: MoveLeft(c_z_angle); break;
+         case CfDir::BACK: MoveBack(c_z_angle); break;
+         case CfDir::RIGHT: MoveRight(c_z_angle); break;
          case CfDir::STOP: {
             /* This case is used to stop any ongoing mouvement before switching direction */
             CVector3& stopCPos = StopMvmt();
             if (Distance(stopCPos, cPos) < 0.05) {
                m_cDir = GetBestDir();
-               printMap();
-            } else {
-               StopMvmt();
-            }
+            } else StopMvmt();
             break;
          }
       }
-   } catch (std::exception e) {
+   } 
+   catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED IN EXPLORATION" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
@@ -356,17 +337,16 @@ void CCrazyflieSensing::printMap() {
 
 void CCrazyflieSensing::GoToBase() {
    try {
-      CVector3 cpos = m_pcPos->GetReading().Position;
+      CVector3 cPos = m_pcPos->GetReading().Position;
       if (m_cState != STATE_GO_TO_BASE) {
          // We update the current drone position on the map
-         map.Move(&map, (int) ((cpos.GetX() + 5) * 100), (int) ((cpos.GetY() + 5) * 100));
+         map.Move(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
 
          // We build the flowmap (distMap) only once
          map.BuildFlow(&map);
 
          m_cState = STATE_GO_TO_BASE;
       }
-
       /***
        * Return to base 
        * -> we approximate base node position [TODO]
@@ -382,7 +362,7 @@ void CCrazyflieSensing::GoToBase() {
       m_pcPos->GetReading().Orientation.ToEulerAngles(c_z_angle, c_y_angle, c_x_angle);
 
       // Update the drone position on the map
-      map.Move(&map, (int) ((cpos.GetX() + 5) * 100), (int) ((cpos.GetY() + 5) * 100));
+      map.Move(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
 
       // Are we at destination? If so we land.
       if (map.currX == map.mBase.x && map.currY == map.mBase.y) {
@@ -407,7 +387,8 @@ void CCrazyflieSensing::GoToBase() {
          case MapExplorationDir::NONE: break;
          default: break;
       }
-   } catch (std::exception e) {
+   } 
+   catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED ON THE WAY BACK" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
@@ -419,13 +400,15 @@ void CCrazyflieSensing::Land() {
          m_cState = STATE_LAND;
       }
 
-      CVector3 cpos = m_pcPos->GetReading().Position;
-      if ((Abs(cpos.GetZ()) > 0.01f)) {
-         cpos.SetZ(0.0f);
+      CVector3 cPos = m_pcPos->GetReading().Position;
+      if ((Abs(cPos.GetZ()) > 0.01f)) {
+         cPos.SetZ(0.0f);
+         m_pcPropellers->SetAbsolutePosition(cPos);
       } else {
          LOG << "MISSION COMPLETE" << std::endl;
       }
-   } catch (std::exception e) {
+   } 
+   catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED WHILE LANDING" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
