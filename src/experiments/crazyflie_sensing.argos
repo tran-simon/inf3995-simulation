@@ -31,7 +31,7 @@
       </actuators>
       <sensors>
         <range_and_bearing implementation="medium" medium="rab" show_rays="false"/>
-        <crazyflie_distance_scanner implementation="rot_z_only" show_rays="true"/>
+        <crazyflie_distance_scanner implementation="rot_z_only" show_rays="true" />
         <positioning implementation="default"/>
         <battery implementation="default"/>
       </sensors>
@@ -44,23 +44,20 @@
   <!-- * Arena configuration * -->
   <!-- *********************** -->
   <!--
-                       RIGHT    
-           __ __ __ __ __ __ __ __ __ __  
-          |                             |
-          |  (-,-)       |       (-,+)  |
-          |              |              |  
-          |              |              |
-  FRONT   |      +-+-+-(0,0)-+-+-> +y   |   BACK
-          |              |              |
-          |              |              |        
-          |              V              |       
-          |  (+,-)       +x      (+,+)  |
-          |__ __ __ __ __ __ __ __ __ __|                                               
-                            
-                        LEFT
-                         
-                         V
-                        Cam
+                               RIGHT    
+                   __ __ __ __ __ __ __ __ __ __  
+                  |                             |
+                  |  (-,-)       |       (-,+)  |
+                  |              |              |  
+                  |              |              |
+  Cam <   FRONT   |      +-+-+-(0,0)-+-+-> +y   |   BACK
+                  |              |              |
+                  |              |              |        
+                  |              V              |       
+                  |  (+,-)       +x      (+,+)  |
+                  |__ __ __ __ __ __ __ __ __ __|                                               
+
+                                LEFT
   -->
 
   <arena size="10, 10, 2" center="0,0,0.5" positional_grid_size="5, 5, 1">
@@ -109,7 +106,7 @@
     <!--Back & Left - Boxes -->
     <distribute>
       <!-- Until base position isn't a constant value, no box in the bottom right corner -->
-      <position method="uniform" min="0.5,0.5,0.01" max="4,4,0.01"/>
+      <position method="uniform" min="0.5,0.5,0.01" max="3.1,3.1,0.01"/>
       <orientation method="gaussian" mean="0,0,0" std_dev="180,0,0"/>
       <entity quantity="2" max_trials="300" pos_delta="1.5,1.5,0">
         <box id="backLeftBoxes_" size="1,1,1.5" movable="false"/>
@@ -118,13 +115,13 @@
 
     <!-- Drones distribution -->
     <distribute>
-      <position method="uniform" min="-4.5,-4.5,0" max="4.5,4.5,0"/>
+      <position method="uniform" min="3.1,3.1,0" max="4.5,4.5,0"/>
       <orientation method="constant" values="0,0,0"/>
-      <entity quantity="1" max_trials="300">
+      <entity quantity="4" max_trials="300">
         <crazyflie id="drone_">
           <body position="3,3,0" orientation="0,0,0"/>
           <controller config="ssc" />
-          <battery model="time_motion" delta="1e-3" pos_delta="1e-3" orient_delta="1e-3"/>
+          <battery model="time_motion" delta="1e-4" pos_delta="1e-4" orient_delta="1e-4"/>
         </crazyflie>
       </entity>
     </distribute>
@@ -155,7 +152,7 @@
       <camera>
       <placements>
         <placement index="0" position="0,0,6"
-                   look_at="0,0,0" up="-1,0,0" 
+                   look_at="0,0,0" up="0,1,0" 
                    lens_focal_length="10" />
         </placements>
       </camera>

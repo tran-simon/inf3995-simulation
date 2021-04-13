@@ -129,15 +129,15 @@ public:
    **/
    int ConnectToSocket();
 
-   /**
+   /** TODO
     * @brief ???
     * 
-    * @param fd ???
+    * @param fd Socket file descriptor.
     * @return char ???
    **/
    char ReadCommand(int fd);
 
-   /**
+   /** TODO
     * @brief Create a Command object ???
     * 
     * @param fd ???
@@ -146,7 +146,7 @@ public:
    **/
    void CreateCommand(int fd, char* message, int value);
 
-   /**
+   /** TODO
     * @brief ???
     * 
     * @param fd ???
@@ -275,9 +275,6 @@ private:
    /* The random number generator */
    CRandom::CRNG* m_pcRNG;
 
-   /* Base position on take off */
-   CVector3 m_cBasePos;
-
    /* Current and previous state of the drone */
    CfState m_cState;
 
@@ -286,8 +283,6 @@ private:
 
    /* Current state of the battery */
    CCI_BatterySensor::SReading sBatRead;
-   
-   CRadians m_desiredAngle;
 
    /**
    *  Current drone to object distance in cm
