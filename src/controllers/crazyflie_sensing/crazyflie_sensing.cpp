@@ -20,7 +20,7 @@
 #define PORT 80
 
 static bool waitingForStart = true;
-static int firstTime = 0; 
+static int firstTime = 0;
 static float velocity = 0.3;
 static int fd[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 static float posX[10];
@@ -48,7 +48,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
       **/
       m_pcDistance   = GetSensor  <CCI_CrazyflieDistanceScannerSensor>("crazyflie_distance_scanner");
       m_pcPropellers = GetActuator  <CCI_QuadRotorPositionActuator>("quadrotor_position");
-      
+
       /* Get pointers to devices */
       m_pcRABA   = GetActuator<CCI_RangeAndBearingActuator>("range_and_bearing");
       m_pcRABS   = GetSensor  <CCI_RangeAndBearingSensor  >("range_and_bearing");
@@ -64,7 +64,7 @@ void CCrazyflieSensing::Init(TConfigurationNode& t_node) {
    catch (CARGoSException& ex) {
       THROW_ARGOSEXCEPTION_NESTED("Error initializing the crazyflie sensing controller for robot \"" << GetId() << "\"", ex);
    }
-   
+
    /* Create a random number generator. We use the 'argos' category so
       that creation, reset, seeding and cleanup are managed by ARGoS. */
 
@@ -92,7 +92,7 @@ int CCrazyflieSensing::ConnectToSocket() {
    int addrlen = sizeof(servaddr);
    int opt = 1;
    char mess[5];
-   char buffer[1024] = {0}; 
+   char buffer[1024] = {0};
    int port = PORT + stoi(GetId().substr(6));
 
    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -103,14 +103,14 @@ int CCrazyflieSensing::ConnectToSocket() {
    servaddr.sin_family = AF_INET;
    servaddr.sin_port = htons(port);
 
-   if (inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr) <= 0) { 
-      LOG << "Invalid address/ Address not supported" << std::endl; 
-      return -1; 
+   if (inet_pton(AF_INET, "172.17.0.1", &servaddr.sin_addr) <= 0) {
+      LOG << "Invalid address/ Address not supported" << std::endl;
+      return -1;
    }
-   
-   if (connect(sock, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) { 
-      LOG << "Connection Failed" << std::endl; 
-      return -1; 
+
+   if (connect(sock, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+      LOG << "Connection Failed" << std::endl;
+      return -1;
    }
 
    valread = recv(sock, buffer, 1024, MSG_PEEK);
@@ -157,8 +157,9 @@ int CCrazyflieSensing::SendCommand(int sock, char* message) {
 /****************************************/
 
 void CCrazyflieSensing::ControlStep() {
-   while (fd[stoi(GetId().substr(6))] <= 0) {
+   if (fd[stoi(GetId().substr(6))] <= 0) {
       fd[stoi(GetId().substr(6))] = ConnectToSocket();
+      return;
    }
 
    if (!posX[stoi(GetId().substr(6))] * 10 & !posY[stoi(GetId().substr(6))] * 10) {
@@ -169,11 +170,11 @@ void CCrazyflieSensing::ControlStep() {
       if (stoi(GetId().substr(6)) != 0) {
          float differenceY = posY[0] - posY[stoi(GetId().substr(6))];
          float newPosY = posY[0] + differenceY;
-         LOG << "Initial position: " << "id: " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
-                                     << std::endl << "<x: " << posX[stoi(GetId().substr(6))] * 10 
+         LOG << "Initial position: " << "id: " << std::to_string(fd[stoi(GetId().substr(6))]).c_str()
+                                     << std::endl << "<x: " << posX[stoi(GetId().substr(6))] * 10
                                      << std::endl << ", y: " << newPosY * 10 << " >;" << std::endl;
       } else {
-         LOG << "Initial position: " << "id: " << std::to_string(fd[stoi(GetId().substr(6))]).c_str() 
+         LOG << "Initial position: " << "id: " << std::to_string(fd[stoi(GetId().substr(6))]).c_str()
                                      << std::endl << "<x: " << posX[stoi(GetId().substr(6))] * 10
                                      << ", y: " << posY[stoi(GetId().substr(6))] * 10 << " >;" << std::endl;
       }
@@ -191,11 +192,11 @@ void CCrazyflieSensing::ControlStep() {
    try {
       // Look battery level
       sBatRead = m_pcBattery->GetReading();
-      char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);   
+      char currentCommand = ReadCommand(fd[stoi(GetId().substr(6))]);
       if (currentCommand == 's') {
          TakeOff();
-      } 
-      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && m_cState != STATE_GO_TO_BASE) { 
+      }
+      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && m_cState != STATE_GO_TO_BASE) {
          GoToBase();
       }
 
@@ -238,7 +239,7 @@ void CCrazyflieSensing::ControlStep() {
             default: break;
          }
       }
-   } 
+   }
    catch (std::exception e) {
       LOGERR << "AN EXCEPTION AS OCCURED IN CONTROLSTEP" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
@@ -261,7 +262,7 @@ void CCrazyflieSensing::TakeOff() {
       } else if (Abs(cPos.GetZ() - height) < 0.1f) {
          Explore();
       }
-   } 
+   }
    catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED IN TAKEOFF" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
@@ -280,21 +281,21 @@ void CCrazyflieSensing::Explore() {
       /* Move the drone in the map */
       CVector3 cPos = m_pcPos->GetReading().Position;
       map.Move(&map, (int) ((cPos.GetX() + 5) * 100), (int) ((cPos.GetY() + 5) * 100));
-      
+
       /* Add the sensor value to the map */
       map.AddData(&map,
                   static_cast<int>(m_cDist[0]), /* Front distance in cm */
                   static_cast<int>(m_cDist[1]), /* left distance  in cm */
                   static_cast<int>(m_cDist[2]), /* back distance  in cm */
                   static_cast<int>(m_cDist[3]));/* right distance in cm */
-      
+
       /* If the drone is too close to an obstacle, move away */
       Real minimalDist = 120;
       if (m_cDist[0] < minimalDist && m_cDist[0] != -2) { MoveBack(c_z_angle, 7.0);}
       if (m_cDist[1] < minimalDist && m_cDist[1] != -2) { MoveRight(c_z_angle, 7.0);}
       if (m_cDist[2] < minimalDist && m_cDist[2] != -2) { MoveForward(c_z_angle, 7.0);}
       if (m_cDist[3] < minimalDist && m_cDist[3] != -2) { MoveLeft(c_z_angle, 7.0);}
-      
+
       /* We get the best direction */
       m_cDir = GetBestDir();
 
@@ -313,7 +314,7 @@ void CCrazyflieSensing::Explore() {
             break;
          }
       }
-   } 
+   }
    catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED IN EXPLORATION" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
@@ -348,7 +349,7 @@ void CCrazyflieSensing::GoToBase() {
          m_cState = STATE_GO_TO_BASE;
       }
       /***
-       * Return to base 
+       * Return to base
        * -> we approximate base node position [TODO]
        * -> based on current node, we find the closest explored node from base we know [TODO]
        * -> from this node we run Wave Propagation algorithm to generate flowmap [DONE]
@@ -370,12 +371,12 @@ void CCrazyflieSensing::GoToBase() {
       }
 
       // We get the next direction
-      MapExplorationDir nextDir = map.NextNode(&map,  
+      MapExplorationDir nextDir = map.NextNode(&map,
                   static_cast<int>(m_cDist[0]), /* Front distance in cm */
                   static_cast<int>(m_cDist[1]), /* Left  distance in cm */
                   static_cast<int>(m_cDist[2]), /* Back  distance in cm */
                   static_cast<int>(m_cDist[3]));/* Right distance in cm */
-      
+
       LOG << "<X, Y> := <"<< map.currX << ", " << map.currY << ">;" << std::endl;
 
       // Move in the chosen direction
@@ -387,7 +388,7 @@ void CCrazyflieSensing::GoToBase() {
          case MapExplorationDir::NONE: break;
          default: break;
       }
-   } 
+   }
    catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED ON THE WAY BACK" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
@@ -407,12 +408,12 @@ void CCrazyflieSensing::Land() {
       } else {
          LOG << "MISSION COMPLETE" << std::endl;
       }
-   } 
+   }
    catch (std::exception e) {
       LOGERR << "EXCEPTION AS OCCURED WHILE LANDING" << std::endl;
       LOGERR << "Exception details: " << e.what() << std::endl;
    }
-} 
+}
 
 /****************************************/
 /*           Movements functions        */
@@ -430,7 +431,7 @@ enum CCrazyflieSensing::CfDir CCrazyflieSensing::GetBestDir() {
       case CfDir::RIGHT: LOG << "RIGHT\n"; break;
       case CfDir::STOP : LOG << "STOP\n";  break;
       default: break;
-   } 
+   }
    return (CfDir) mapExplorationDir;
 }
 
