@@ -1,5 +1,6 @@
 # INF3995-Simulation
 
+Utilisez le docker-compose du répertoire inf3995-main pour compiler et rouler la simulation. Voir le README
 
 
 ====================
