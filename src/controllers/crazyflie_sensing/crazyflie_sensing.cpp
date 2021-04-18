@@ -196,8 +196,11 @@ void CCrazyflieSensing::ControlStep() {
       if (currentCommand == 's') {
          TakeOff();
       }
-      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'l') && m_cState != STATE_GO_TO_BASE) {
+      if ((sBatRead.AvailableCharge < 0.3 || currentCommand == 'r') && m_cState != STATE_GO_TO_BASE) {
          GoToBase();
+      }
+      if (currentCommand == 'l') {
+         Land();
       }
 
       CCI_CrazyflieDistanceScannerSensor::TReadingsMap sDistRead = m_pcDistance->GetReadingsMap();
